@@ -43,6 +43,36 @@
       byId.a === 4.8 && byId.b === 3.2
     );
 
+    check(
+      "formatSecondsAsHhMmSs zero",
+      tm.formatSecondsAsHhMmSs(0) === "0:00:00"
+    );
+    check(
+      "formatSecondsAsHhMmSs 1h",
+      tm.formatSecondsAsHhMmSs(3600) === "1:00:00"
+    );
+    check(
+      "formatSecondsAsHhMmSs 90m",
+      tm.formatSecondsAsHhMmSs(90 * 60) === "1:30:00"
+    );
+    check(
+      "formatSecondsAsHhMmSs floors subsecond",
+      tm.formatSecondsAsHhMmSs(5.9) === "0:00:05"
+    );
+
+    check(
+      "parseTimeInputToSeconds decimal",
+      Math.abs(tm.parseTimeInputToSeconds("5.3") - 5.3 * 3600) < 1e-6
+    );
+    check(
+      "parseTimeInputToSeconds h:mm:ss",
+      tm.parseTimeInputToSeconds("1:05:30") === 3600 + 5 * 60 + 30
+    );
+    check(
+      "parseTimeInputToSeconds mm:ss",
+      tm.parseTimeInputToSeconds("5:30") === 5 * 60 + 30
+    );
+
     console.log("timeMath checks finished.");
   </script>
 </body>

@@ -150,6 +150,20 @@ body {
   cursor: not-allowed;
 }
 
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+}
+
+.btn-icon svg {
+  display: block;
+  flex-shrink: 0;
+}
+
 .btn-primary {
   background: var(--sf-brand);
   color: #fff;
@@ -189,6 +203,11 @@ body {
   border: 1px solid var(--sf-border);
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
+}
+
+.btn-danger.btn-icon {
+  padding: 0.5rem;
+  font-size: inherit;
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -241,8 +260,9 @@ body {
 }
 
 .track-hours {
-  flex: 0 0 5.5rem;
-  width: 5.5rem;
+  flex: 0 0 7.5rem;
+  width: 7.5rem;
+  min-width: 7rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -289,6 +309,61 @@ body {
 
 .chart-block .empty-hint {
   text-align: center;
+}
+
+.scaled-table-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--sf-border);
+}
+
+.scaled-table-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.scaled-table-caption {
+  margin-bottom: 0.75rem;
+}
+
+.scaled-table-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.scaled-table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--sf-border);
+  border-radius: var(--sf-radius);
+  background: var(--sf-surface);
+}
+
+.scaled-copy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.scaled-copy-table th,
+.scaled-copy-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--sf-border);
+}
+
+.scaled-copy-table th {
+  font-weight: 600;
+  color: var(--sf-text-secondary);
+  background: var(--sf-bg);
+}
+
+.scaled-copy-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.scaled-copy-table td:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .app-footer {

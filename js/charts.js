@@ -11,6 +11,73 @@ const COLORS = [
   "#3BA755",
 ];
 
+/** Fills the 8 h pie when recorded total is under 8 h */
+const REMAINDER_SLICE_COLOR = "#d8dde6";
+
+/** @type {string} */
+let lastScaledTsv = "";
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {});
+    return;
+  }
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+  } catch {
+    /* ignore */
+  }
+  document.body.removeChild(ta);
+}
+
+function wireScaledCopyButton() {
+  const btn = document.getElementById("btn-copy-scaled-tsv");
+  if (!btn || btn.dataset.wired === "1") return;
+  btn.dataset.wired = "1";
+  btn.addEventListener("click", () => {
+    if (lastScaledTsv) copyTextToClipboard(lastScaledTsv);
+  });
+}
+
+/**
+ * @param {{ label: string, value: number }[]} scaledData
+ * @param {boolean} hasRecorded
+ */
+function updateScaledTable(scaledData, hasRecorded) {
+  const section = document.getElementById("scaled-table-section");
+  const tbody = document.getElementById("scaled-copy-tbody");
+  if (!section || !tbody) return;
+
+  wireScaledCopyButton();
+
+  if (!hasRecorded) {
+    lastScaledTsv = "";
+    tbody.innerHTML = "";
+    section.hidden = true;
+    return;
+  }
+
+  lastScaledTsv = scaledData.map((d) => `${d.label}\t${d.value}`).join("\n");
+
+  tbody.innerHTML = "";
+  for (const d of scaledData) {
+    const tr = document.createElement("tr");
+    const tdLabel = document.createElement("td");
+    tdLabel.textContent = d.label;
+    const tdH = document.createElement("td");
+    tdH.textContent = String(d.value);
+    tr.append(tdLabel, tdH);
+    tbody.appendChild(tr);
+  }
+  section.hidden = false;
+}
+
 /**
  * @param {Record<string, number>} secondsByTopic
  * @param {Map<string, string>} labels
@@ -43,6 +110,7 @@ export function updateCharts(secondsByTopic, labels) {
   if (!hasRecorded) {
     destroyIfExists("chartVs8");
     destroyIfExists("chartScaled");
+    updateScaledTable([], false);
     return;
   }
 
@@ -63,12 +131,21 @@ export function updateCharts(secondsByTopic, labels) {
     vs8Data.push(remainder);
   }
 
+  let colorIdx = 0;
+  const vs8BackgroundColors = vs8Labels.map((lab) => {
+    if (lab === "Remaining") return REMAINDER_SLICE_COLOR;
+    const c = COLORS[colorIdx % COLORS.length];
+    colorIdx += 1;
+    return c;
+  });
+
   renderPie(
     "chartVs8",
     vs8Canvas,
     vs8Labels,
     vs8Data,
-    "Recorded vs 8 h"
+    "Recorded vs 8 h",
+    vs8BackgroundColors
   );
 
   const totalSec2 = rows.reduce((sum, [, sec]) => sum + sec, 0);
@@ -84,6 +161,8 @@ export function updateCharts(secondsByTopic, labels) {
     scaledData.map((d) => d.value),
     "Scaled to 8 h"
   );
+
+  updateScaledTable(scaledData, true);
 }
 
 /** @type {Record<string, { destroy: () => void }>} */
@@ -95,11 +174,15 @@ const instances = {};
  * @param {string[]} chartLabels
  * @param {number[]} data
  * @param {string} title
+ * @param {string[] | undefined} backgroundColors per-slice colors (defaults to COLORS rotation)
  */
-function renderPie(key, canvas, chartLabels, data, title) {
+function renderPie(key, canvas, chartLabels, data, title, backgroundColors) {
   if (!canvas) return;
   destroyIfExists(key);
   const ChartCtor = /** @type {any} */ (globalThis).Chart;
+  const bg =
+    backgroundColors ??
+    chartLabels.map((_, i) => COLORS[i % COLORS.length]);
   instances[key] = new ChartCtor(canvas, {
     type: "pie",
     data: {
@@ -108,9 +191,7 @@ function renderPie(key, canvas, chartLabels, data, title) {
         {
           label: title,
           data,
-          backgroundColor: chartLabels.map(
-            (_, i) => COLORS[i % COLORS.length]
-          ),
+          backgroundColor: bg,
           borderWidth: 1,
           borderColor: "#fff",
         },

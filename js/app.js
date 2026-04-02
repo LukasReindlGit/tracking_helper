@@ -3,6 +3,36 @@ import * as state from "./state.js";
 import * as timeMath from "./timeMath.js";
 import { updateCharts } from "./charts.js";
 
+const SVG_ATTR =
+  'xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"';
+
+/** @param {string} inner */
+function iconSvg(inner) {
+  return `<svg ${SVG_ATTR}>${inner}</svg>`;
+}
+
+const ICON_PLAY = iconSvg(
+  '<path fill="currentColor" d="M8 5v14l11-7z"/>'
+);
+const ICON_PAUSE = iconSvg(
+  '<path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>'
+);
+const ICON_COPY = iconSvg(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>' +
+    '<path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>' +
+    "</g>"
+);
+const ICON_TRASH = iconSvg(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    "<path d=\"M3 6h18\"/>" +
+    "<path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"/>" +
+    "<path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"/>" +
+    "<line x1=\"10\" x2=\"10\" y1=\"11\" y2=\"17\"/>" +
+    "<line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\"/>" +
+    "</g>"
+);
+
 /** @type {import('./state.js').AppState} */
 let appState = state.createEmptyState();
 let persist = false;
@@ -90,7 +120,7 @@ function updateChartsSection() {
 function setHoursInputValue(hoursInp, row) {
   const day = todayKey();
   const sec = state.effectiveSecondsForRow(appState, day, row, Date.now());
-  hoursInp.value = String(timeMath.secondsToDecimalHours(sec));
+  hoursInp.value = timeMath.formatSecondsAsHhMmSs(sec);
 }
 
 function tickLiveHours() {
@@ -129,11 +159,14 @@ function renderTrackingRows() {
     });
 
     const hoursInp = document.createElement("input");
-    hoursInp.type = "number";
-    hoursInp.step = "0.1";
-    hoursInp.min = "0";
+    hoursInp.type = "text";
     hoursInp.className = "input track-hours";
-    hoursInp.setAttribute("aria-label", "Hours (decimal)");
+    hoursInp.placeholder = "0:00:00";
+    hoursInp.setAttribute(
+      "aria-label",
+      "Tracked time as h:mm:ss (decimal hours also accepted on edit)"
+    );
+    hoursInp.setAttribute("autocomplete", "off");
     setHoursInputValue(hoursInp, row);
 
     hoursInp.addEventListener("focus", () => {
@@ -145,8 +178,7 @@ function renderTrackingRows() {
     });
 
     hoursInp.addEventListener("change", () => {
-      const h = parseFloat(hoursInp.value);
-      row.seconds = Number.isFinite(h) ? Math.max(0, h) * 3600 : 0;
+      row.seconds = timeMath.parseTimeInputToSeconds(hoursInp.value);
       save();
       renderAll();
     });
@@ -155,8 +187,14 @@ function renderTrackingRows() {
 
     const btnStart = document.createElement("button");
     btnStart.type = "button";
-    btnStart.className = "btn btn-primary";
-    btnStart.textContent = "Start";
+    btnStart.className = "btn btn-primary btn-icon";
+    btnStart.setAttribute(
+      "aria-label",
+      "Start stopwatch for this row. Any other running timer is paused first."
+    );
+    btnStart.title =
+      "Start stopwatch for this row. Any other running timer is paused first.";
+    btnStart.innerHTML = ICON_PLAY;
     btnStart.disabled = running;
     btnStart.addEventListener("click", () => {
       state.startRowTimer(appState, day, row.id, Date.now());
@@ -166,8 +204,14 @@ function renderTrackingRows() {
 
     const btnPause = document.createElement("button");
     btnPause.type = "button";
-    btnPause.className = "btn btn-secondary";
-    btnPause.textContent = "Pause";
+    btnPause.className = "btn btn-secondary btn-icon";
+    btnPause.setAttribute(
+      "aria-label",
+      "Pause the stopwatch. Recorded time stays in the duration field."
+    );
+    btnPause.title =
+      "Pause the stopwatch. Recorded time stays in the duration field.";
+    btnPause.innerHTML = ICON_PAUSE;
     btnPause.disabled = !running;
     btnPause.addEventListener("click", () => {
       state.pauseRowTimer(appState, Date.now());
@@ -177,8 +221,14 @@ function renderTrackingRows() {
 
     const btnCopy = document.createElement("button");
     btnCopy.type = "button";
-    btnCopy.className = "btn btn-secondary";
-    btnCopy.textContent = "Copy";
+    btnCopy.className = "btn btn-secondary btn-icon";
+    btnCopy.setAttribute(
+      "aria-label",
+      "Copy ticket or topic and decimal hours to the clipboard, tab-separated."
+    );
+    btnCopy.title =
+      "Copy ticket or topic and decimal hours to the clipboard, tab-separated.";
+    btnCopy.innerHTML = ICON_COPY;
     btnCopy.addEventListener("click", () => {
       const label = row.label.trim() || row.id;
       const sec = state.effectiveSecondsForRow(appState, day, row, Date.now());
@@ -188,8 +238,13 @@ function renderTrackingRows() {
 
     const btnRemove = document.createElement("button");
     btnRemove.type = "button";
-    btnRemove.className = "btn btn-danger";
-    btnRemove.textContent = "Remove";
+    btnRemove.className = "btn btn-danger btn-icon";
+    btnRemove.setAttribute(
+      "aria-label",
+      "Remove this row and delete its recorded time."
+    );
+    btnRemove.title = "Remove this row and delete its recorded time.";
+    btnRemove.innerHTML = ICON_TRASH;
     btnRemove.addEventListener("click", () => {
       state.removeRow(appState, day, row.id);
       save();

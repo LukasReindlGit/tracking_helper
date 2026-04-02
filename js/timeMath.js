@@ -14,6 +14,48 @@ export function formatDecimalHours(seconds) {
 }
 
 /**
+ * @param {number} seconds
+ * @returns {string} h:mm:ss (hours unbounded; minutes and seconds zero-padded)
+ */
+export function formatSecondsAsHhMmSs(seconds) {
+  const sec = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Accepts decimal hours (e.g. 5.3), h:mm:ss, or mm:ss.
+ * @param {string} raw
+ * @returns {number} seconds, >= 0
+ */
+export function parseTimeInputToSeconds(raw) {
+  const str = String(raw ?? "").trim();
+  if (!str) return 0;
+
+  if (!str.includes(":")) {
+    const h = parseFloat(str);
+    return Number.isFinite(h) && h >= 0 ? h * 3600 : 0;
+  }
+
+  const parts = str.split(":").map((p) => p.trim());
+  const nums = parts.map((p) => {
+    const n = parseFloat(p);
+    return Number.isFinite(n) && n >= 0 ? n : NaN;
+  });
+  if (nums.some((n) => Number.isNaN(n))) return 0;
+
+  if (parts.length === 2) {
+    return nums[0] * 60 + nums[1];
+  }
+  if (parts.length === 3) {
+    return nums[0] * 3600 + nums[1] * 60 + nums[2];
+  }
+  return 0;
+}
+
+/**
  * @param {Segment[]} segments
  * @param {string | null} activeTopicId
  * @param {number | null} activeStartedAt

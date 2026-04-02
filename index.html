@@ -40,13 +40,13 @@
 
   <header class="app-header">
     <h1>Tracking Helper</h1>
-    <p class="subtitle">Per-row stopwatch for tickets — edit hours manually or run Start / Pause; copy decimal hours into Salesforce or elsewhere.</p>
+    <p class="subtitle">Per-row stopwatch for tickets — time shows as h:mm:ss while running; you can still type decimal hours (e.g. 5.3) or h:mm:ss; Copy still uses decimal hours for Salesforce or elsewhere.</p>
   </header>
 
   <main class="app-main">
     <section class="card" aria-labelledby="tracking-heading">
       <h2 id="tracking-heading">Time tracking</h2>
-      <p class="section-hint">Each row: ticket name, hours (updated by the stopwatch or editable), Start / Pause, Copy, Remove.</p>
+      <p class="section-hint">Each row: ticket name, duration as h:mm:ss (stopwatch updates every second), then play / pause, copy (decimal hours), and delete.</p>
       <div id="tracking-rows" class="tracking-rows"></div>
       <button type="button" id="btn-add-row" class="btn btn-secondary btn-add-row">Add row</button>
     </section>
@@ -70,6 +70,29 @@
             <canvas id="chart-scaled" aria-label="Pie chart scaled to eight hours"></canvas>
           </div>
           <p id="chart-scaled-empty" class="empty-hint" hidden>No recorded time to scale.</p>
+        </div>
+      </div>
+
+      <div id="scaled-table-section" class="scaled-table-section" hidden>
+        <h3 class="scaled-table-title">Scaled to 8 h — copy</h3>
+        <p class="chart-caption scaled-table-caption">
+          Same numbers as the scaled chart; select cells or use the button to copy tab-separated lines (topic, then hours).
+        </p>
+        <div class="scaled-table-toolbar">
+          <button type="button" id="btn-copy-scaled-tsv" class="btn btn-secondary">
+            Copy all (tab-separated)
+          </button>
+        </div>
+        <div class="scaled-table-scroll">
+          <table class="scaled-copy-table" aria-label="Scaled hours per topic">
+            <thead>
+              <tr>
+                <th scope="col">Topic</th>
+                <th scope="col">Hours (scaled)</th>
+              </tr>
+            </thead>
+            <tbody id="scaled-copy-tbody"></tbody>
+          </table>
         </div>
       </div>
     </section>

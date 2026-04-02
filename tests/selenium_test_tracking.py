@@ -117,6 +117,15 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
     def _first_row(self):
         return self.driver.find_element(By.CSS_SELECTOR, "#tracking-rows .track-row")
 
+    @staticmethod
+    def _parse_hh_mm_ss(value: str) -> float:
+        """Parse tracking row duration field (h:mm:ss) to seconds."""
+        parts = (value or "").strip().split(":")
+        if len(parts) != 3:
+            return float("nan")
+        h, m, s = (int(parts[0]), int(parts[1]), int(parts[2]))
+        return h * 3600 + m * 60 + s
+
     def _load_with_preseeded_storage(self, data: dict) -> None:
         """Set consent + app JSON in localStorage, then reload (skips consent UI)."""
         self.driver.get(self.base_url)
@@ -150,12 +159,14 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
         self.driver.execute_script("arguments[0].blur()", label_inp)
         self.driver.find_element(By.ID, "btn-add-row").click()
         self.wait.until(
-            lambda d: "TICK-SEL-001"
-            in d.find_element(By.ID, "tracking-rows").text
+            lambda d: d.find_elements(
+                By.CSS_SELECTOR, "#tracking-rows .track-row .track-label"
+            )[0].get_attribute("value")
+            == "TICK-SEL-001"
         )
 
     def test_timer_start_pause_updates_hours_field(self) -> None:
-        """Short intervals round to 0 h in the hours field (one decimal)."""
+        """After a few seconds running, pause leaves h:mm:ss reflecting elapsed time."""
         self._open_fresh()
         self._accept_consent()
         self._add_tracking_row()
@@ -165,16 +176,19 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
 
         def pause_enabled(driver):
             r = driver.find_element(By.CSS_SELECTOR, "#tracking-rows .track-row")
-            return r.find_element(By.XPATH, ".//button[text()='Pause']").is_enabled()
+            return r.find_element(
+                By.CSS_SELECTOR, 'button[aria-label^="Pause"]'
+            ).is_enabled()
 
         self.wait.until(pause_enabled)
         time.sleep(2.2)
         self.driver.find_element(
-            By.XPATH, "//div[contains(@class,'track-row')]//button[text()='Pause']"
+            By.CSS_SELECTOR, "#tracking-rows .track-row button[aria-label^='Pause']"
         ).click()
         hours_inp = self.driver.find_element(By.CSS_SELECTOR, ".track-hours")
-        val = float((hours_inp.get_attribute("value") or "0").strip())
-        self.assertAlmostEqual(val, 0.0, places=1)
+        secs = self._parse_hh_mm_ss(hours_inp.get_attribute("value") or "")
+        self.assertGreaterEqual(secs, 2.0)
+        self.assertLessEqual(secs, 3.5)
 
     def test_preseeded_hour_shows_nonzero_decimal_hours(self) -> None:
         day = date.today().isoformat()
@@ -194,12 +208,14 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
             }
         )
         self.wait.until(
-            lambda d: "TICK-ONE-HOUR"
-            in d.find_element(By.ID, "tracking-rows").text
+            lambda d: d.find_element(
+                By.CSS_SELECTOR, "#tracking-rows .track-row .track-label"
+            ).get_attribute("value")
+            == "TICK-ONE-HOUR"
         )
         hours_inp = self.driver.find_element(By.CSS_SELECTOR, ".track-hours")
-        val = float((hours_inp.get_attribute("value") or "0").strip())
-        self.assertAlmostEqual(val, 1.0, places=1)
+        secs = self._parse_hh_mm_ss(hours_inp.get_attribute("value") or "")
+        self.assertAlmostEqual(secs, 3600.0, places=2)
 
     def test_charts_canvas_shown_after_logging_time(self) -> None:
         self._open_fresh()
@@ -209,7 +225,9 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
         row.find_element(By.CSS_SELECTOR, ".track-label").send_keys("TICK-CHART")
         row.find_element(By.CSS_SELECTOR, ".btn-primary").click()
         time.sleep(1.5)
-        row.find_element(By.XPATH, ".//button[text()='Pause']").click()
+        self.driver.find_element(
+            By.CSS_SELECTOR, "#tracking-rows .track-row button[aria-label^='Pause']"
+        ).click()
         self.wait.until(
             lambda d: d.find_element(By.ID, "chart-vs8").value_of_css_property("display")
             != "none"
@@ -228,7 +246,10 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
             "TICK-DECLINE"
         )
         self.wait.until(
-            lambda d: "TICK-DECLINE" in d.find_element(By.ID, "tracking-rows").text
+            lambda d: d.find_element(
+                By.CSS_SELECTOR, "#tracking-rows .track-row .track-label"
+            ).get_attribute("value")
+            == "TICK-DECLINE"
         )
 
 
