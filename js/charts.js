@@ -1,5 +1,7 @@
 /* global Chart — loaded via UMD in index.html */
 
+import * as timeMath from "./timeMath.js";
+
 const COLORS = [
   "#0176D3",
   "#2E844A",
@@ -16,6 +18,29 @@ const REMAINDER_SLICE_COLOR = "#d8dde6";
 
 /** @type {string} */
 let lastScaledTsv = "";
+
+const SCALED_TARGET_MIN = 4;
+const SCALED_TARGET_MAX = 12;
+const SCALED_TARGET_DEFAULT = 8;
+
+/**
+ * @param {number} v
+ */
+function formatTargetHoursForUi(v) {
+  const r = Math.round(v * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
+
+function readScaledTargetHours() {
+  const el = document.getElementById("scaled-target-hours");
+  const v = el ? parseFloat(/** @type {HTMLInputElement} */ (el).value) : NaN;
+  if (!Number.isFinite(v)) return SCALED_TARGET_DEFAULT;
+  const clamped = Math.min(
+    SCALED_TARGET_MAX,
+    Math.max(SCALED_TARGET_MIN, Math.round(v * 10) / 10)
+  );
+  return clamped;
+}
 
 function copyTextToClipboard(text) {
   if (navigator.clipboard?.writeText) {
@@ -48,10 +73,15 @@ function wireScaledCopyButton() {
 /**
  * @param {{ label: string, value: number }[]} scaledData
  * @param {boolean} hasRecorded
+ * @param {number} targetHours
  */
-function updateScaledTable(scaledData, hasRecorded) {
+function updateScaledTable(scaledData, hasRecorded, targetHours) {
   const section = document.getElementById("scaled-table-section");
   const tbody = document.getElementById("scaled-copy-tbody");
+  const titleEl = document.querySelector(".scaled-table-title");
+  const thScaled = document.querySelector(
+    ".scaled-copy-table thead th:last-child"
+  );
   if (!section || !tbody) return;
 
   wireScaledCopyButton();
@@ -61,6 +91,14 @@ function updateScaledTable(scaledData, hasRecorded) {
     tbody.innerHTML = "";
     section.hidden = true;
     return;
+  }
+
+  const hLabel = formatTargetHoursForUi(targetHours);
+  if (titleEl) {
+    titleEl.textContent = `Scaled to ${hLabel} h — copy`;
+  }
+  if (thScaled) {
+    thScaled.textContent = `Hours (scaled to ${hLabel} h)`;
   }
 
   lastScaledTsv = scaledData.map((d) => `${d.label}\t${d.value}`).join("\n");
@@ -110,9 +148,11 @@ export function updateCharts(secondsByTopic, labels) {
   if (!hasRecorded) {
     destroyIfExists("chartVs8");
     destroyIfExists("chartScaled");
-    updateScaledTable([], false);
+    updateScaledTable([], false, SCALED_TARGET_DEFAULT);
     return;
   }
+
+  const targetScaledH = readScaledTargetHours();
 
   const rows = Object.entries(secondsByTopic)
     .filter(([, s]) => s > 0)
@@ -148,21 +188,29 @@ export function updateCharts(secondsByTopic, labels) {
     vs8BackgroundColors
   );
 
-  const totalSec2 = rows.reduce((sum, [, sec]) => sum + sec, 0);
-  const scaledData = rows.map(([id, sec]) => ({
+  const secRecord = Object.fromEntries(rows);
+  const scaledById = new Map(
+    timeMath.scaledToTargetHours(secRecord, targetScaledH).map((r) => [
+      r.topicId,
+      r.scaledHours,
+    ])
+  );
+  const scaledData = rows.map(([id]) => ({
     label: labels.get(id) ?? id,
-    value: Math.round((sec / totalSec2) * 8 * 10) / 10,
+    value: /** @type {number} */ (scaledById.get(id)),
   }));
+
+  const scaledTitle = `Scaled to ${formatTargetHoursForUi(targetScaledH)} h`;
 
   renderPie(
     "chartScaled",
     scaledCanvas,
     scaledData.map((d) => d.label),
     scaledData.map((d) => d.value),
-    "Scaled to 8 h"
+    scaledTitle
   );
 
-  updateScaledTable(scaledData, true);
+  updateScaledTable(scaledData, true, targetScaledH);
 }
 
 /** @type {Record<string, { destroy: () => void }>} */

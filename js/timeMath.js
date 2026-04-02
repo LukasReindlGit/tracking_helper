@@ -106,15 +106,26 @@ export function remainderHoursToEight(secondsByTopic) {
 
 /**
  * @param {Record<string, number>} secondsByTopic
+ * @param {number} targetHours total hours to scale to (e.g. 8)
  * @returns {{ topicId: string, scaledHours: number }[]}
  */
-export function scaledToEightHours(secondsByTopic) {
+export function scaledToTargetHours(secondsByTopic, targetHours) {
+  const t = Number(targetHours);
+  if (!Number.isFinite(t) || t < 0) return [];
   const totalSec = Object.values(secondsByTopic).reduce((a, b) => a + b, 0);
   if (totalSec <= 0) return [];
   return Object.entries(secondsByTopic)
     .filter(([, sec]) => sec > 0)
     .map(([topicId, sec]) => ({
       topicId,
-      scaledHours: Math.round((sec / totalSec) * 8 * 10) / 10,
+      scaledHours: Math.round((sec / totalSec) * t * 10) / 10,
     }));
+}
+
+/**
+ * @param {Record<string, number>} secondsByTopic
+ * @returns {{ topicId: string, scaledHours: number }[]}
+ */
+export function scaledToEightHours(secondsByTopic) {
+  return scaledToTargetHours(secondsByTopic, 8);
 }

@@ -93,6 +93,18 @@ function totalHoursToday() {
   return sum;
 }
 
+function syncScaledTargetSliderUi() {
+  const slider = /** @type {HTMLInputElement | null} */ (
+    document.getElementById("scaled-target-hours")
+  );
+  const display = document.getElementById("scaled-target-hours-display");
+  if (!slider || !display) return;
+  const v = parseFloat(slider.value);
+  const r = Math.round(v * 10) / 10;
+  display.textContent = Number.isInteger(r) ? String(r) : r.toFixed(1);
+  slider.setAttribute("aria-valuenow", display.textContent);
+}
+
 function updateChartsSection() {
   const day = todayKey();
   const now = Date.now();
@@ -316,8 +328,14 @@ els.btnResetConsent?.addEventListener("click", () => {
   showConsent(true);
 });
 
+document.getElementById("scaled-target-hours")?.addEventListener("input", () => {
+  syncScaledTargetSliderUi();
+  updateChartsSection();
+});
+
 initFromConsent();
 renderAll();
+syncScaledTargetSliderUi();
 
 setInterval(() => {
   tickLiveHours();

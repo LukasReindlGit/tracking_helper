@@ -43,6 +43,18 @@
       byId.a === 4.8 && byId.b === 3.2
     );
 
+    const scaled6 = tm.scaledToTargetHours(
+      { a: 3 * 3600, b: 2 * 3600 },
+      6
+    );
+    const byId6 = Object.fromEntries(
+      scaled6.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours 6h total",
+      byId6.a === 3.6 && byId6.b === 2.4
+    );
+
     check(
       "formatSecondsAsHhMmSs zero",
       tm.formatSecondsAsHhMmSs(0) === "0:00:00"

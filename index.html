@@ -64,13 +64,35 @@
           <p id="chart-vs8-empty" class="empty-hint" hidden>No data to chart.</p>
         </div>
         <div class="chart-block">
-          <h3>Scaled to 8 h</h3>
-          <p class="chart-caption">Proportions stretched to sum to 8 h (allocation-style).</p>
+          <h3>Scaled day total</h3>
+          <p class="chart-caption">
+            Proportions from your recorded time, stretched to the target total you set below (default 8 h).
+          </p>
           <div class="chart-canvas-wrap">
-            <canvas id="chart-scaled" aria-label="Pie chart scaled to eight hours"></canvas>
+            <canvas id="chart-scaled" aria-label="Pie chart scaled to a chosen day total"></canvas>
           </div>
           <p id="chart-scaled-empty" class="empty-hint" hidden>No recorded time to scale.</p>
         </div>
+      </div>
+
+      <div class="scaled-target-row">
+        <label class="scaled-target-label" for="scaled-target-hours">
+          Scale recorded split to a total of
+          <span id="scaled-target-hours-display" class="scaled-target-value">8</span>
+          h
+        </label>
+        <input
+          type="range"
+          id="scaled-target-hours"
+          min="4"
+          max="12"
+          step="0.1"
+          value="8"
+          aria-valuemin="4"
+          aria-valuemax="12"
+          aria-valuenow="8"
+          aria-label="Target total hours for scaled chart and table"
+        />
       </div>
 
       <div id="scaled-table-section" class="scaled-table-section" hidden>
