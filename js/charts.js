@@ -31,6 +31,24 @@ function formatTargetHoursForUi(v) {
   return Number.isInteger(r) ? String(r) : r.toFixed(1);
 }
 
+/**
+ * @param {number} sum
+ */
+function formatScaledSumForUi(sum) {
+  if (!Number.isFinite(sum)) return "0";
+  const r = Math.round(sum * 100) / 100;
+  if (Number.isInteger(r)) return String(r);
+  const s = r.toFixed(2);
+  return s.replace(/\.?0+$/, "");
+}
+
+/**
+ * @param {{ value: number }[]} scaledData
+ */
+function scaledDataSumHours(scaledData) {
+  return scaledData.reduce((s, d) => s + (Number(d.value) || 0), 0);
+}
+
 function readScaledTargetHours() {
   const el = document.getElementById("scaled-target-hours");
   const v = el ? parseFloat(/** @type {HTMLInputElement} */ (el).value) : NaN;
@@ -102,9 +120,9 @@ function wireScaledCopyButton() {
 /**
  * @param {{ label: string, value: number, linkBase: string }[]} scaledData
  * @param {boolean} hasRecorded
- * @param {number} targetHours
+ * @param {string} scaledTotalLabel formatted sum of scaled row hours (after rounding)
  */
-function updateScaledTable(scaledData, hasRecorded, targetHours) {
+function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
   const section = document.getElementById("scaled-table-section");
   const tbody = document.getElementById("scaled-copy-tbody");
   const titleEl = document.querySelector(".scaled-table-title");
@@ -122,12 +140,11 @@ function updateScaledTable(scaledData, hasRecorded, targetHours) {
     return;
   }
 
-  const hLabel = formatTargetHoursForUi(targetHours);
   if (titleEl) {
-    titleEl.textContent = `Scaled to ${hLabel} h — copy`;
+    titleEl.textContent = `Scaled to ${scaledTotalLabel} h — copy`;
   }
   if (thScaled) {
-    thScaled.textContent = `Hours (scaled to ${hLabel} h)`;
+    thScaled.textContent = `Hours (scaled to ${scaledTotalLabel} h)`;
   }
 
   lastScaledTsv = scaledData.map((d) => `${d.label}\t${d.value}`).join("\n");
@@ -189,7 +206,7 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
   if (!hasRecorded) {
     destroyIfExists("chartVs8");
     destroyIfExists("chartScaled");
-    updateScaledTable([], false, SCALED_TARGET_DEFAULT);
+    updateScaledTable([], false, "");
     return;
   }
 
@@ -246,7 +263,8 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
     linkBase: bases.get(id) ?? "",
   }));
 
-  const scaledTitle = `Scaled to ${formatTargetHoursForUi(targetScaledH)} h`;
+  const scaledTotalLabel = formatScaledSumForUi(scaledDataSumHours(scaledData));
+  const scaledTitle = `Scaled to ${scaledTotalLabel} h`;
 
   renderPie(
     "chartScaled",
@@ -256,7 +274,7 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
     scaledTitle
   );
 
-  updateScaledTable(scaledData, true, targetScaledH);
+  updateScaledTable(scaledData, true, scaledTotalLabel);
 }
 
 /** @type {Record<string, { destroy: () => void }>} */
