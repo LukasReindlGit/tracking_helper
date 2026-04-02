@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tracking Helper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="file-protocol-warning" class="file-protocol-warning" hidden>
+    <strong>This page must be served over HTTP.</strong>
+    Opening <code>index.html</code> directly (<code>file://</code>) prevents the app script (ES modules) from loading, so buttons will not work.
+    From this folder run:
+    <code>python3 -m http.server 8080</code>
+    then open
+    <code>http://localhost:8080/</code>
+  </div>
+  <script>
+    (function () {
+      if (location.protocol === "file:") {
+        var el = document.getElementById("file-protocol-warning");
+        if (el) el.hidden = false;
+      }
+    })();
+  </script>
+  <div id="consent-overlay" class="consent-overlay" hidden>
+    <div class="consent-card card" role="dialog" aria-labelledby="consent-title" aria-modal="true">
+      <h2 id="consent-title">Storage consent</h2>
+      <p>
+        This app can save your topics and time entries in your browser’s local storage so they persist after you close the tab.
+        We do not use analytics or third-party tracking. If you decline, everything stays in memory only until you refresh the page.
+      </p>
+      <p class="consent-note">German / EU: by accepting, you agree to this use of device storage for the tracking helper.</p>
+      <div class="consent-actions">
+        <button type="button" id="consent-decline" class="btn btn-secondary">Decline</button>
+        <button type="button" id="consent-accept" class="btn btn-primary">Accept</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="app-header">
+    <h1>Tracking Helper</h1>
+    <p class="subtitle">Per-row stopwatch for tickets — edit hours manually or run Start / Pause; copy decimal hours into Salesforce or elsewhere.</p>
+  </header>
+
+  <main class="app-main">
+    <section class="card" aria-labelledby="tracking-heading">
+      <h2 id="tracking-heading">Time tracking</h2>
+      <p class="section-hint">Each row: ticket name, hours (updated by the stopwatch or editable), Start / Pause, Copy, Remove.</p>
+      <div id="tracking-rows" class="tracking-rows"></div>
+      <button type="button" id="btn-add-row" class="btn btn-secondary btn-add-row">Add row</button>
+    </section>
+
+    <section class="card charts-card" aria-labelledby="charts-heading">
+      <h2 id="charts-heading">Charts</h2>
+      <p id="charts-overflow" class="totals-overflow" hidden></p>
+      <div class="charts-grid">
+        <div class="chart-block">
+          <h3>Recorded vs 8 h</h3>
+          <p class="chart-caption">Includes “Remaining” to fill an 8 h day.</p>
+          <div class="chart-canvas-wrap">
+            <canvas id="chart-vs8" aria-label="Pie chart of hours versus eight hour day"></canvas>
+          </div>
+          <p id="chart-vs8-empty" class="empty-hint" hidden>No data to chart.</p>
+        </div>
+        <div class="chart-block">
+          <h3>Scaled to 8 h</h3>
+          <p class="chart-caption">Proportions stretched to sum to 8 h (allocation-style).</p>
+          <div class="chart-canvas-wrap">
+            <canvas id="chart-scaled" aria-label="Pie chart scaled to eight hours"></canvas>
+          </div>
+          <p id="chart-scaled-empty" class="empty-hint" hidden>No recorded time to scale.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <button type="button" id="btn-reset-consent" class="btn btn-text">Storage settings</button>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

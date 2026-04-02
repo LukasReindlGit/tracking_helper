@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>timeMath sanity checks</title>
+</head>
+<body>
+  <p>Open the console (F12). Assertions run on load. Serve this folder over HTTP so the module loads.</p>
+  <script type="module">
+    import * as tm from "./js/timeMath.js";
+
+    function check(name, cond) {
+      if (!cond) console.error("FAIL:", name);
+      else console.log("ok:", name);
+      console.assert(cond, name);
+    }
+
+    check("secondsToDecimalHours 1h", tm.secondsToDecimalHours(3600) === 1);
+    check(
+      "secondsToDecimalHours 5.3h",
+      tm.secondsToDecimalHours(5.3 * 3600) === 5.3
+    );
+
+    const seg = [{ topicId: "a", startMs: 0, endMs: 3600000 }];
+    const t = tm.totalsPerTopic(seg, null, null, 0);
+    check("totalsPerTopic segment", t.a === 3600);
+
+    const t2 = tm.totalsPerTopic([], "x", 1000000, 1000000 + 7200000);
+    check("totalsPerTopic active", Math.abs(t2.x - 7200) < 1e-6);
+
+    check(
+      "remainderHoursToEight",
+      tm.remainderHoursToEight({ a: 5 * 3600 }) === 3
+    );
+
+    const scaled = tm.scaledToEightHours({
+      a: 3 * 3600,
+      b: 2 * 3600,
+    });
+    const byId = Object.fromEntries(scaled.map((r) => [r.topicId, r.scaledHours]));
+    check(
+      "scaledToEightHours 3h+2h",
+      byId.a === 4.8 && byId.b === 3.2
+    );
+
+    console.log("timeMath checks finished.");
+  </script>
+</body>
+</html>
