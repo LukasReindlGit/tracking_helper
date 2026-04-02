@@ -122,7 +122,8 @@ function updateChartsSection() {
     }
   }
 
-  updateCharts(secMap, labels);
+  const linkBases = state.rowLinkBaseMap(appState, day);
+  updateCharts(secMap, labels, linkBases);
 }
 
 /**
@@ -157,6 +158,24 @@ function renderTrackingRows() {
     const wrap = document.createElement("div");
     wrap.className = "track-row";
     wrap.dataset.rowId = row.id;
+
+    const linkInp = document.createElement("input");
+    linkInp.type = "text";
+    linkInp.className = "input track-link-base";
+    linkInp.placeholder = "https://…";
+    linkInp.value =
+      typeof row.linkBaseUrl === "string" ? row.linkBaseUrl : "";
+    linkInp.setAttribute(
+      "aria-label",
+      "Optional base URL for opening this ticket (opens in scaled table link)"
+    );
+    linkInp.title =
+      "Paste the project or list URL up to (but not including) the ticket key. If it ends with = (e.g. …id=), the ticket name is appended directly.";
+    linkInp.addEventListener("change", () => {
+      row.linkBaseUrl = linkInp.value;
+      save();
+      updateChartsSection();
+    });
 
     const labelInp = document.createElement("input");
     labelInp.type = "text";
@@ -264,6 +283,7 @@ function renderTrackingRows() {
     });
 
     wrap.append(
+      linkInp,
       labelInp,
       hoursInp,
       btnStart,
