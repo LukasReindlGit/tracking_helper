@@ -60,7 +60,18 @@
         </label>
       </div>
       <div id="tracking-rows" class="tracking-rows"></div>
-      <button type="button" id="btn-add-row" class="btn btn-secondary btn-add-row">Add row</button>
+      <div class="tracking-actions">
+        <button type="button" id="btn-add-row" class="btn btn-secondary">Add row</button>
+        <button
+          type="button"
+          id="btn-reset-times"
+          class="btn btn-secondary"
+          title="Set every row's tracked time for today to 0:00:00. Pauses a running stopwatch on today first."
+          aria-label="Reset all tracked times for today to zero; pauses today’s stopwatch if running"
+        >
+          Reset times
+        </button>
+      </div>
     </section>
 
     <section class="card charts-card" aria-labelledby="charts-heading">

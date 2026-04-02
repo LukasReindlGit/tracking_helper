@@ -156,6 +156,22 @@ export function pauseRowTimer(state, nowMs) {
 }
 
 /**
+ * Sets seconds to 0 for every row on dayKey. Pauses an active timer on that day first.
+ * @param {AppState} state
+ * @param {string} dayKey
+ * @param {number} nowMs
+ */
+export function resetSecondsForDay(state, dayKey, nowMs) {
+  const at = state.activeTimer;
+  if (at && at.dayKey === dayKey) {
+    pauseRowTimer(state, nowMs);
+  }
+  for (const r of getRows(state, dayKey)) {
+    r.seconds = 0;
+  }
+}
+
+/**
  * @param {AppState} state
  * @param {string} dayKey
  * @param {string} rowId

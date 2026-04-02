@@ -536,6 +536,12 @@ els.btnAddRow?.addEventListener("click", () => {
   renderAll();
 });
 
+document.getElementById("btn-reset-times")?.addEventListener("click", () => {
+  state.resetSecondsForDay(appState, todayKey(), Date.now());
+  save();
+  renderAll();
+});
+
 els.btnResetConsent?.addEventListener("click", () => {
   storage.clearConsentDecision();
   persist = false;
