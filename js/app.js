@@ -105,6 +105,24 @@ function syncScaledTargetSliderUi() {
   slider.setAttribute("aria-valuenow", display.textContent);
 }
 
+function ensureScaledRoundingPrefs() {
+  if (!appState.scaledRoundingPrefs) {
+    appState.scaledRoundingPrefs = state.defaultScaledRoundingPrefs();
+  }
+}
+
+/** Push saved rounding preferences into the chart controls (call before charts read the DOM). */
+function syncScaledRoundingPrefsToDom() {
+  ensureScaledRoundingPrefs();
+  const p = appState.scaledRoundingPrefs;
+  const sel = document.getElementById("scaled-rounding-mode");
+  const chk = /** @type {HTMLInputElement | null} */ (
+    document.getElementById("scaled-five-min-threshold")
+  );
+  if (sel) sel.value = p.mode;
+  if (chk) chk.checked = p.fiveMinThreshold;
+}
+
 function updateChartsSection() {
   const day = todayKey();
   const now = Date.now();
@@ -316,6 +334,7 @@ function copyToClipboard(text) {
 
 function renderAll() {
   renderTrackingRows();
+  syncScaledRoundingPrefsToDom();
   updateChartsSection();
 }
 
@@ -353,7 +372,23 @@ document.getElementById("scaled-target-hours")?.addEventListener("input", () => 
   updateChartsSection();
 });
 
-document.getElementById("scaled-rounding-mode")?.addEventListener("change", () => {
+document.getElementById("scaled-rounding-mode")?.addEventListener("change", (ev) => {
+  ensureScaledRoundingPrefs();
+  const sel = /** @type {HTMLSelectElement} */ (ev.target);
+  const v = sel.value;
+  if (v === "none" || v === "quarter" || v === "half" || v === "hour") {
+    appState.scaledRoundingPrefs.mode = v;
+  }
+  save();
+  updateChartsSection();
+});
+
+document.getElementById("scaled-five-min-threshold")?.addEventListener("change", (ev) => {
+  ensureScaledRoundingPrefs();
+  appState.scaledRoundingPrefs.fiveMinThreshold = /** @type {HTMLInputElement} */ (
+    ev.target
+  ).checked;
+  save();
   updateChartsSection();
 });
 

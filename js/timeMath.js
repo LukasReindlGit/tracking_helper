@@ -109,30 +109,56 @@ export function remainderHoursToEight(secondsByTopic) {
  * @typedef {'none' | 'quarter' | 'half' | 'hour'} ScaledRoundingMode
  */
 
+/** Hours: strictly more than this above the lower step → round up; otherwise round down. */
+const FIVE_MINUTES_AS_HOURS = 5 / 60;
+
 /**
  * Round a proportional scaled hour value for display/export. Only used on scaled totals per topic.
  * @param {number} proportionalHours
  * @param {ScaledRoundingMode} mode
+ * @param {boolean} [fiveMinThreshold] if true (and mode uses a step), round up only when the remainder above the lower step exceeds 5 minutes; otherwise round down to that step
  * @returns {number}
  */
-export function applyScaledHoursRounding(proportionalHours, mode) {
+export function applyScaledHoursRounding(
+  proportionalHours,
+  mode,
+  fiveMinThreshold = false
+) {
   const h = proportionalHours;
   if (!Number.isFinite(h) || h <= 0) return 0;
   if (mode === "none" || mode == null) {
     return Math.round(h * 10) / 10;
   }
   const step = mode === "quarter" ? 0.25 : mode === "half" ? 0.5 : 1;
-  const n = Math.ceil(h / step - 1e-10) * step;
-  return Math.round(n * 10000) / 10000;
+
+  if (!fiveMinThreshold) {
+    const n = Math.ceil(h / step - 1e-10) * step;
+    return Math.round(n * 10000) / 10000;
+  }
+
+  const flo = Math.floor(h / step + 1e-10) * step;
+  const cei = Math.ceil(h / step - 1e-10) * step;
+  if (Math.abs(cei - flo) < 1e-9) {
+    return Math.round(flo * 10000) / 10000;
+  }
+  const remainder = h - flo;
+  const chosen = remainder > FIVE_MINUTES_AS_HOURS ? cei : flo;
+  return Math.round(chosen * 10000) / 10000;
 }
 
 /**
  * @param {Record<string, number>} secondsByTopic
  * @param {number} targetHours total hours to scale to (e.g. 8)
  * @param {ScaledRoundingMode} [roundingMode='quarter'] round-up increment for each topic’s scaled hours
+ * @param {boolean} [fiveMinThreshold=false] when true, use 5-minute threshold rule for step rounding (see applyScaledHoursRounding)
  * @returns {{ topicId: string, scaledHours: number }[]}
  */
-export function scaledToTargetHours(secondsByTopic, targetHours, roundingMode = "quarter") {
+export function scaledToTargetHours(
+  secondsByTopic,
+  targetHours,
+  roundingMode = "quarter",
+  fiveMinThreshold = false
+) {
   const t = Number(targetHours);
   if (!Number.isFinite(t) || t < 0) return [];
   const totalSec = Object.values(secondsByTopic).reduce((a, b) => a + b, 0);
@@ -143,7 +169,7 @@ export function scaledToTargetHours(secondsByTopic, targetHours, roundingMode = 
       const raw = (sec / totalSec) * t;
       return {
         topicId,
-        scaledHours: applyScaledHoursRounding(raw, roundingMode),
+        scaledHours: applyScaledHoursRounding(raw, roundingMode, fiveMinThreshold),
       };
     });
 }

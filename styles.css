@@ -366,6 +366,29 @@ body {
   font-size: 0.8125rem;
 }
 
+.scaled-five-min-wrap {
+  margin-top: 0.65rem;
+  max-width: 24rem;
+}
+
+.scaled-five-min-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.scaled-five-min-row input {
+  flex-shrink: 0;
+  accent-color: var(--sf-brand);
+}
+
+.scaled-five-min-label {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--sf-text);
+  cursor: pointer;
+}
+
 .scaled-table-section {
   margin-top: 1.5rem;
   padding-top: 1.25rem;

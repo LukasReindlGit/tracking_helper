@@ -18,7 +18,7 @@ Lightweight, client-side time tracking for daily work topics—designed to reduc
 
 ## Overview
 
-The problem is familiar: logging hours at the end of the day is tedious and inaccurate when you must reconstruct what you did and for how long. This project is a small web app that behaves like a **Jira-style stopwatch**: you work against named topics (often ticket identifiers), accumulate time, and get totals that are easy to copy elsewhere.
+The problem is familiar: logging hours at the end of the day is tedious and inaccurate when you must reconstruct what you did and for how long. This project is a small web app that behaves like a **stopwatch**: you work against named topics (often ticket identifiers), accumulate time, and get totals that are easy to copy elsewhere.
 
 **Design goals**
 

@@ -1,3 +1,5 @@
+import { defaultScaledRoundingPrefs } from "./state.js";
+
 const CONSENT_KEY = "tracking-helper-consent";
 const DATA_KEY = "tracking-helper-v1";
 
@@ -134,7 +136,30 @@ function normalizeRowsState(raw) {
       startedAt: raw.activeTimer.startedAt,
     };
   }
-  return { rowsByDay, activeTimer };
+  return {
+    rowsByDay,
+    activeTimer,
+    scaledRoundingPrefs: parseScaledRoundingPrefs(raw.scaledRoundingPrefs),
+  };
+}
+
+/**
+ * @param {unknown} raw
+ * @returns {import('./state.js').ScaledRoundingPrefs}
+ */
+function parseScaledRoundingPrefs(raw) {
+  const def = defaultScaledRoundingPrefs();
+  if (!raw || typeof raw !== "object") return def;
+  const o = /** @type {Record<string, unknown>} */ (raw);
+  const out = { ...def };
+  const m = o.mode;
+  if (m === "none" || m === "quarter" || m === "half" || m === "hour") {
+    out.mode = m;
+  }
+  if (typeof o.fiveMinThreshold === "boolean") {
+    out.fiveMinThreshold = o.fiveMinThreshold;
+  }
+  return out;
 }
 
 /**
@@ -212,7 +237,11 @@ function migrateFromLegacyTopicsSegments(raw) {
     }
   }
 
-  return { rowsByDay, activeTimer };
+  return {
+    rowsByDay,
+    activeTimer,
+    scaledRoundingPrefs: defaultScaledRoundingPrefs(),
+  };
 }
 
 /**

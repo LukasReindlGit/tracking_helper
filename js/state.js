@@ -2,10 +2,24 @@
 /** @typedef {{ dayKey: string, rowId: string, startedAt: number }} ActiveTimer */
 /**
  * @typedef {{
+ *   mode: 'none' | 'quarter' | 'half' | 'hour',
+ *   fiveMinThreshold: boolean
+ * }} ScaledRoundingPrefs
+ */
+/**
+ * @typedef {{
  *   rowsByDay: Record<string, TrackRow[]>,
- *   activeTimer: ActiveTimer | null
+ *   activeTimer: ActiveTimer | null,
+ *   scaledRoundingPrefs: ScaledRoundingPrefs
  * }} AppState
  */
+
+/**
+ * @returns {ScaledRoundingPrefs}
+ */
+export function defaultScaledRoundingPrefs() {
+  return { mode: "quarter", fiveMinThreshold: false };
+}
 
 /**
  * @returns {AppState}
@@ -14,6 +28,7 @@ export function createEmptyState() {
   return {
     rowsByDay: {},
     activeTimer: null,
+    scaledRoundingPrefs: defaultScaledRoundingPrefs(),
   };
 }
 

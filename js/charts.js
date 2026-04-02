@@ -50,6 +50,11 @@ function readScaledRoundingMode() {
   return "quarter";
 }
 
+function readScaledFiveMinThreshold() {
+  const el = document.getElementById("scaled-five-min-threshold");
+  return !!(el && /** @type {HTMLInputElement} */ (el).checked);
+}
+
 /**
  * @param {string} baseRaw
  * @param {string} ticketRaw
@@ -227,7 +232,12 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
   const secRecord = Object.fromEntries(rows);
   const scaledById = new Map(
     timeMath
-      .scaledToTargetHours(secRecord, targetScaledH, readScaledRoundingMode())
+      .scaledToTargetHours(
+        secRecord,
+        targetScaledH,
+        readScaledRoundingMode(),
+        readScaledFiveMinThreshold()
+      )
       .map((r) => [r.topicId, r.scaledHours])
   );
   const scaledData = rows.map(([id]) => ({

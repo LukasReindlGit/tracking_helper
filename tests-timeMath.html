@@ -102,6 +102,34 @@
     );
     check("scaledToTargetHours hour ceil", by1.a === 5 && by1.b === 4);
 
+    const scaled5m = tm.scaledToTargetHours(
+      { a: 3 * 3600, b: 2 * 3600 },
+      8,
+      "quarter",
+      true
+    );
+    const by5m = Object.fromEntries(
+      scaled5m.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours quarter + 5min rule 3h+2h to 8h",
+      by5m.a === 4.75 && by5m.b === 3.25
+    );
+
+    const scaledEdge = tm.scaledToTargetHours(
+      { a: 3700, b: 5900 },
+      8,
+      "quarter",
+      true
+    );
+    const byE = Object.fromEntries(
+      scaledEdge.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "5min rule: remainder exactly 5 min rounds down",
+      byE.a === 3 && byE.b === 5
+    );
+
     check(
       "formatSecondsAsHhMmSs zero",
       tm.formatSecondsAsHhMmSs(0) === "0:00:00"
