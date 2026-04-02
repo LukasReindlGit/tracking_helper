@@ -32,6 +32,31 @@ const ICON_TRASH = iconSvg(
     "<line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\"/>" +
     "</g>"
 );
+const ICON_GRIP = iconSvg(
+  '<g fill="currentColor">' +
+    '<circle cx="8" cy="6" r="1.5"/><circle cx="14" cy="6" r="1.5"/>' +
+    '<circle cx="8" cy="12" r="1.5"/><circle cx="14" cy="12" r="1.5"/>' +
+    '<circle cx="8" cy="18" r="1.5"/><circle cx="14" cy="18" r="1.5"/>' +
+    "</g>"
+);
+const ICON_EYE = iconSvg(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M1 12s4 8 11 8 11-8 11-8-4-8-11-8-11 8-11 8z"/>' +
+    '<circle cx="12" cy="12" r="3"/>' +
+    "</g>"
+);
+const ICON_EYE_OFF = iconSvg(
+  '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M1 12s4 8 11 8 11-8 11-8-4-8-11-8-11 8-11 8z"/>' +
+    '<circle cx="12" cy="12" r="3"/>' +
+    '<path d="m4 4 16 16"/>' +
+    "</g>"
+);
+
+const DRAG_ROW_MIME = "application/x-tracking-helper-row";
+
+/** @type {string | null} */
+let dragActiveRowId = null;
 
 /** @type {import('./state.js').AppState} */
 let appState = state.createEmptyState();
@@ -111,6 +136,12 @@ function ensureScaledRoundingPrefs() {
   }
 }
 
+function ensureShowHiddenTrackingRowsPref() {
+  if (typeof appState.showHiddenTrackingRows !== "boolean") {
+    appState.showHiddenTrackingRows = false;
+  }
+}
+
 /** Push saved rounding preferences into the chart controls (call before charts read the DOM). */
 function syncScaledRoundingPrefsToDom() {
   ensureScaledRoundingPrefs();
@@ -159,6 +190,7 @@ function tickLiveHours() {
   if (!at || at.dayKey !== todayKey()) return;
   const row = state.getRows(appState, at.dayKey).find((r) => r.id === at.rowId);
   if (!row || !els.trackingRows) return;
+  if (row.hidden && !appState.showHiddenTrackingRows) return;
   const wrap = els.trackingRows.querySelector(`[data-row-id="${at.rowId}"]`);
   const inp = wrap?.querySelector(".track-hours");
   if (inp instanceof HTMLInputElement) {
@@ -166,16 +198,122 @@ function tickLiveHours() {
   }
 }
 
+function clearTrackingRowDragUi() {
+  if (!els.trackingRows) return;
+  for (const el of els.trackingRows.querySelectorAll(".track-row--drag-over")) {
+    el.classList.remove("track-row--drag-over");
+  }
+  const end = els.trackingRows.querySelector(".track-row-end-drop");
+  end?.classList.remove("track-row-end-drop--active");
+}
+
+function setupTrackingRowDragDrop() {
+  if (!els.trackingRows || els.trackingRows.dataset.dragWired === "1") return;
+  els.trackingRows.dataset.dragWired = "1";
+
+  els.trackingRows.addEventListener("dragstart", (e) => {
+    const t = e.target;
+    const handle =
+      t instanceof Element ? t.closest(".track-drag-handle") : null;
+    if (!handle) return;
+    const row = handle.closest(".track-row");
+    if (!row || !(row instanceof HTMLElement)) return;
+    const id = row.dataset.rowId;
+    if (!id) return;
+    dragActiveRowId = id;
+    if (e.dataTransfer) {
+      e.dataTransfer.setData(DRAG_ROW_MIME, id);
+      e.dataTransfer.setData("text/plain", id);
+      e.dataTransfer.effectAllowed = "move";
+    }
+  });
+
+  els.trackingRows.addEventListener("dragend", () => {
+    dragActiveRowId = null;
+    clearTrackingRowDragUi();
+  });
+
+  els.trackingRows.addEventListener("dragover", (e) => {
+    const t = e.target;
+    const rowEl = t instanceof Element ? t.closest(".track-row") : null;
+    const endEl =
+      t instanceof Element ? t.closest(".track-row-end-drop") : null;
+    if (!rowEl && !endEl) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    clearTrackingRowDragUi();
+    if (endEl) {
+      endEl.classList.add("track-row-end-drop--active");
+    } else if (rowEl) {
+      rowEl.classList.add("track-row--drag-over");
+    }
+  });
+
+  els.trackingRows.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const id =
+      e.dataTransfer?.getData(DRAG_ROW_MIME) ||
+      e.dataTransfer?.getData("text/plain") ||
+      dragActiveRowId;
+    if (!id) {
+      clearTrackingRowDragUi();
+      return;
+    }
+    const day = todayKey();
+    const t = e.target;
+    const endDrop = t instanceof Element ? t.closest(".track-row-end-drop") : null;
+    if (endDrop) {
+      state.moveRowBefore(appState, day, id, null);
+      save();
+      renderAll();
+      return;
+    }
+    const row = t instanceof Element ? t.closest(".track-row") : null;
+    if (!row || !(row instanceof HTMLElement)) {
+      clearTrackingRowDragUi();
+      return;
+    }
+    const targetId = row.dataset.rowId;
+    if (!targetId || targetId === id) {
+      clearTrackingRowDragUi();
+      return;
+    }
+    state.moveRowBefore(appState, day, id, targetId);
+    save();
+    renderAll();
+  });
+}
+
+function syncShowHiddenTrackingCheckbox() {
+  const chk = document.getElementById("show-hidden-tracking-rows");
+  if (chk instanceof HTMLInputElement) {
+    chk.checked = appState.showHiddenTrackingRows;
+  }
+}
+
 function renderTrackingRows() {
   if (!els.trackingRows) return;
+  ensureShowHiddenTrackingRowsPref();
   const day = todayKey();
-  const rows = state.getRows(appState, day);
+  const allRows = state.getRows(appState, day);
+  const rows = appState.showHiddenTrackingRows
+    ? allRows
+    : allRows.filter((r) => !r.hidden);
   els.trackingRows.innerHTML = "";
 
   for (const row of rows) {
     const wrap = document.createElement("div");
     wrap.className = "track-row";
+    if (row.hidden) wrap.classList.add("track-row--hidden");
     wrap.dataset.rowId = row.id;
+
+    const btnDrag = document.createElement("button");
+    btnDrag.type = "button";
+    btnDrag.className = "track-drag-handle";
+    btnDrag.setAttribute("aria-label", "Drag to reorder this row");
+    btnDrag.title = "Drag to reorder";
+    btnDrag.draggable = true;
+    btnDrag.innerHTML = ICON_GRIP;
 
     const linkInp = document.createElement("input");
     linkInp.type = "text";
@@ -300,17 +438,51 @@ function renderTrackingRows() {
       renderAll();
     });
 
+    const btnHide = document.createElement("button");
+    btnHide.type = "button";
+    if (row.hidden) {
+      btnHide.className = "btn btn-secondary btn-icon";
+      btnHide.setAttribute("aria-label", "Show this row in the list again");
+      btnHide.title = "Unhide row";
+      btnHide.innerHTML = ICON_EYE;
+      btnHide.addEventListener("click", () => {
+        state.setRowHidden(appState, day, row.id, false);
+        save();
+        renderAll();
+      });
+    } else {
+      btnHide.className = "btn btn-secondary btn-icon";
+      btnHide.setAttribute(
+        "aria-label",
+        "Hide this row from the list (enable Show hidden rows to edit it again)"
+      );
+      btnHide.title = "Hide row from list";
+      btnHide.innerHTML = ICON_EYE_OFF;
+      btnHide.addEventListener("click", () => {
+        state.setRowHidden(appState, day, row.id, true);
+        save();
+        renderAll();
+      });
+    }
+
     wrap.append(
+      btnDrag,
       linkInp,
       labelInp,
       hoursInp,
       btnStart,
       btnPause,
       btnCopy,
+      btnHide,
       btnRemove
     );
     els.trackingRows.appendChild(wrap);
   }
+
+  const endDrop = document.createElement("div");
+  endDrop.className = "track-row-end-drop";
+  endDrop.setAttribute("aria-hidden", "true");
+  els.trackingRows.appendChild(endDrop);
 }
 
 function copyToClipboard(text) {
@@ -333,7 +505,10 @@ function copyToClipboard(text) {
 }
 
 function renderAll() {
+  ensureShowHiddenTrackingRowsPref();
   renderTrackingRows();
+  setupTrackingRowDragDrop();
+  syncShowHiddenTrackingCheckbox();
   syncScaledRoundingPrefsToDom();
   updateChartsSection();
 }
@@ -390,6 +565,15 @@ document.getElementById("scaled-five-min-threshold")?.addEventListener("change",
   ).checked;
   save();
   updateChartsSection();
+});
+
+document.getElementById("show-hidden-tracking-rows")?.addEventListener("change", (ev) => {
+  ensureShowHiddenTrackingRowsPref();
+  appState.showHiddenTrackingRows = /** @type {HTMLInputElement} */ (
+    ev.target
+  ).checked;
+  save();
+  renderAll();
 });
 
 initFromConsent();

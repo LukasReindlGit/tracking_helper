@@ -120,6 +120,7 @@ function normalizeRowsState(raw) {
           typeof r.linkBaseUrl === "string" ? r.linkBaseUrl : "",
         seconds:
           typeof r.seconds === "number" && r.seconds >= 0 ? r.seconds : 0,
+        hidden: typeof r.hidden === "boolean" ? r.hidden : false,
       }));
   }
   let activeTimer = null;
@@ -140,6 +141,10 @@ function normalizeRowsState(raw) {
     rowsByDay,
     activeTimer,
     scaledRoundingPrefs: parseScaledRoundingPrefs(raw.scaledRoundingPrefs),
+    showHiddenTrackingRows:
+      typeof raw.showHiddenTrackingRows === "boolean"
+        ? raw.showHiddenTrackingRows
+        : false,
   };
 }
 
@@ -200,6 +205,7 @@ function migrateFromLegacyTopicsSegments(raw) {
           label: t.label,
           linkBaseUrl: "",
           seconds: sec,
+          hidden: false,
         };
       });
     }
@@ -216,6 +222,7 @@ function migrateFromLegacyTopicsSegments(raw) {
         label: id,
         linkBaseUrl: "",
         seconds: sec,
+        hidden: false,
       }));
     }
   }
@@ -241,6 +248,7 @@ function migrateFromLegacyTopicsSegments(raw) {
     rowsByDay,
     activeTimer,
     scaledRoundingPrefs: defaultScaledRoundingPrefs(),
+    showHiddenTrackingRows: false,
   };
 }
 

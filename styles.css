@@ -237,8 +237,40 @@ body {
   color: var(--sf-text-secondary);
 }
 
+.tracking-toolbar {
+  margin-bottom: 0.65rem;
+}
+
+.tracking-show-hidden-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  color: var(--sf-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.tracking-show-hidden-label input {
+  flex-shrink: 0;
+  accent-color: var(--sf-brand);
+}
+
 .tracking-rows {
   margin-bottom: 0.75rem;
+}
+
+.track-row-end-drop {
+  min-height: 0.75rem;
+  margin: 0 -0.25rem;
+  border-radius: var(--sf-radius);
+  transition: background 0.12s ease;
+}
+
+.track-row-end-drop.track-row-end-drop--active {
+  background: rgba(1, 118, 211, 0.12);
+  outline: 1px dashed var(--sf-brand);
+  outline-offset: 2px;
 }
 
 .track-row {
@@ -248,6 +280,52 @@ body {
   gap: 0.5rem;
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--sf-border);
+}
+
+.track-row.track-row--hidden {
+  opacity: 0.72;
+  background: linear-gradient(
+    90deg,
+    rgba(1, 118, 211, 0.04) 0%,
+    transparent 12rem
+  );
+}
+
+.track-row.track-row--drag-over {
+  box-shadow: inset 0 3px 0 0 var(--sf-brand);
+}
+
+.track-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.25rem;
+  margin: 0 -0.15rem 0 -0.25rem;
+  border: none;
+  border-radius: var(--sf-radius);
+  background: transparent;
+  color: var(--sf-text-secondary);
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+}
+
+.track-drag-handle:hover {
+  background: var(--sf-bg);
+  color: var(--sf-text);
+}
+
+.track-drag-handle:active {
+  cursor: grabbing;
+}
+
+.track-drag-handle:focus-visible {
+  outline: 2px solid var(--sf-brand);
+  outline-offset: 2px;
+}
+
+.track-drag-handle svg {
+  display: block;
 }
 
 .track-row:last-child {

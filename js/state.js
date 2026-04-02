@@ -1,4 +1,4 @@
-/** @typedef {{ id: string, label: string, linkBaseUrl: string, seconds: number }} TrackRow */
+/** @typedef {{ id: string, label: string, linkBaseUrl: string, seconds: number, hidden?: boolean }} TrackRow */
 /** @typedef {{ dayKey: string, rowId: string, startedAt: number }} ActiveTimer */
 /**
  * @typedef {{
@@ -10,7 +10,8 @@
  * @typedef {{
  *   rowsByDay: Record<string, TrackRow[]>,
  *   activeTimer: ActiveTimer | null,
- *   scaledRoundingPrefs: ScaledRoundingPrefs
+ *   scaledRoundingPrefs: ScaledRoundingPrefs,
+ *   showHiddenTrackingRows: boolean
  * }} AppState
  */
 
@@ -29,6 +30,7 @@ export function createEmptyState() {
     rowsByDay: {},
     activeTimer: null,
     scaledRoundingPrefs: defaultScaledRoundingPrefs(),
+    showHiddenTrackingRows: false,
   };
 }
 
@@ -57,9 +59,51 @@ export function getRows(state, dayKey) {
  * @returns {TrackRow}
  */
 export function addRow(state, dayKey) {
-  const row = { id: newId(), label: "", linkBaseUrl: "", seconds: 0 };
+  const row = {
+    id: newId(),
+    label: "",
+    linkBaseUrl: "",
+    seconds: 0,
+    hidden: false,
+  };
   getRows(state, dayKey).push(row);
   return row;
+}
+
+/**
+ * Move rowId to immediately before beforeRowId, or to the end if beforeRowId is null.
+ * @param {AppState} state
+ * @param {string} dayKey
+ * @param {string} rowId
+ * @param {string | null} beforeRowId
+ */
+export function moveRowBefore(state, dayKey, rowId, beforeRowId) {
+  if (rowId === beforeRowId) return;
+  const rows = getRows(state, dayKey);
+  const from = rows.findIndex((r) => r.id === rowId);
+  if (from < 0) return;
+  const [item] = rows.splice(from, 1);
+  if (beforeRowId === null) {
+    rows.push(item);
+    return;
+  }
+  const to = rows.findIndex((r) => r.id === beforeRowId);
+  if (to < 0) {
+    rows.push(item);
+    return;
+  }
+  rows.splice(to, 0, item);
+}
+
+/**
+ * @param {AppState} state
+ * @param {string} dayKey
+ * @param {string} rowId
+ * @param {boolean} hidden
+ */
+export function setRowHidden(state, dayKey, rowId, hidden) {
+  const row = getRows(state, dayKey).find((r) => r.id === rowId);
+  if (row) row.hidden = hidden;
 }
 
 /**

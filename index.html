@@ -47,8 +47,18 @@
     <section class="card" aria-labelledby="tracking-heading">
       <h2 id="tracking-heading">Time tracking</h2>
       <p class="section-hint">
-        Each row: optional short URL prefix (for links in the scaled table), ticket name, duration as h:mm:ss, then play / pause, copy (decimal hours), and delete.
+        Each row: drag the handle to reorder, optional URL prefix, ticket name, duration, play / pause, copy, hide (or unhide when shown), and delete. Use “Show hidden rows” to see hidden tickets again.
       </p>
+      <div class="tracking-toolbar">
+        <label class="tracking-show-hidden-label">
+          <input
+            type="checkbox"
+            id="show-hidden-tracking-rows"
+            aria-label="Show hidden ticket rows in the list"
+          />
+          Show hidden rows
+        </label>
+      </div>
       <div id="tracking-rows" class="tracking-rows"></div>
       <button type="button" id="btn-add-row" class="btn btn-secondary btn-add-row">Add row</button>
     </section>
