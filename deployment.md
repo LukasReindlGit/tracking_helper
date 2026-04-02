@@ -1,7 +1,7 @@
 # Deploying Tracking Helper
 
 DEPLOY: 
-`lukas@S5W-1001:~/Documents/Projects/tracking_helper(master)$ scp -P 4561 -r /home/lukas/Documents/Projects/tracking_helper root@212.132.68.199:~/projects/lukas-reindl/html/tracking`
+`rsync -avz -e "ssh -p 4561" --delete --exclude '.git' --exclude '.venv' /home/lukas/Documents/Projects/tracking_helper/ root@212.132.68.199:~/projects/lukas-reindl/html/tracking/`
 
 This project is a **static site**: `index.html`, `styles.css`, and the `js/` folder. There is no build step. You can host it anywhere that serves files over HTTP (including your existing Nginx Docker image).
 
