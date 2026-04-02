@@ -95,6 +95,17 @@
           aria-valuenow="8"
           aria-label="Target total hours for scaled chart and table"
         />
+        <div class="scaled-rounding-row">
+          <label class="scaled-rounding-label" for="scaled-rounding-mode">
+            Round scaled hours up to
+          </label>
+          <select id="scaled-rounding-mode" class="input scaled-rounding-select" aria-label="Round each scaled topic hour up to this increment">
+            <option value="none">No extra rounding (1 decimal)</option>
+            <option value="quarter" selected>¼ h (15 min)</option>
+            <option value="half">½ h (30 min)</option>
+            <option value="hour">1 h</option>
+          </select>
+        </div>
       </div>
 
       <div id="scaled-table-section" class="scaled-table-section" hidden>

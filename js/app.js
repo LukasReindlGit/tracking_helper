@@ -353,6 +353,10 @@ document.getElementById("scaled-target-hours")?.addEventListener("input", () => 
   updateChartsSection();
 });
 
+document.getElementById("scaled-rounding-mode")?.addEventListener("change", () => {
+  updateChartsSection();
+});
+
 initFromConsent();
 renderAll();
 syncScaledTargetSliderUi();

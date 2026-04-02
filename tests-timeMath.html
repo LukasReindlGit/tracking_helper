@@ -39,13 +39,27 @@
     });
     const byId = Object.fromEntries(scaled.map((r) => [r.topicId, r.scaledHours]));
     check(
-      "scaledToEightHours 3h+2h",
-      byId.a === 4.8 && byId.b === 3.2
+      "scaledToEightHours 3h+2h (default quarter round-up)",
+      byId.a === 5 && byId.b === 3.25
+    );
+
+    const scaledNone = tm.scaledToTargetHours(
+      { a: 3 * 3600, b: 2 * 3600 },
+      8,
+      "none"
+    );
+    const byNone = Object.fromEntries(
+      scaledNone.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours 8h none",
+      byNone.a === 4.8 && byNone.b === 3.2
     );
 
     const scaled6 = tm.scaledToTargetHours(
       { a: 3 * 3600, b: 2 * 3600 },
-      6
+      6,
+      "none"
     );
     const byId6 = Object.fromEntries(
       scaled6.map((r) => [r.topicId, r.scaledHours])
@@ -54,6 +68,39 @@
       "scaledToTargetHours 6h total",
       byId6.a === 3.6 && byId6.b === 2.4
     );
+
+    const scaledQ = tm.scaledToTargetHours(
+      { a: 3 * 3600, b: 2 * 3600 },
+      8,
+      "quarter"
+    );
+    const byQ = Object.fromEntries(
+      scaledQ.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours quarter ceil 3h+2h to 8h",
+      byQ.a === 5 && byQ.b === 3.25
+    );
+
+    const scaledH = tm.scaledToTargetHours(
+      { a: 3 * 3600, b: 2 * 3600 },
+      8,
+      "half"
+    );
+    const byH = Object.fromEntries(
+      scaledH.map((r) => [r.topicId, r.scaledHours])
+    );
+    check("scaledToTargetHours half ceil", byH.a === 5 && byH.b === 3.5);
+
+    const scaled1 = tm.scaledToTargetHours(
+      { a: 3 * 3600, b: 2 * 3600 },
+      8,
+      "hour"
+    );
+    const by1 = Object.fromEntries(
+      scaled1.map((r) => [r.topicId, r.scaledHours])
+    );
+    check("scaledToTargetHours hour ceil", by1.a === 5 && by1.b === 4);
 
     check(
       "formatSecondsAsHhMmSs zero",

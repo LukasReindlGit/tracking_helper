@@ -42,6 +42,14 @@ function readScaledTargetHours() {
   return clamped;
 }
 
+/** @returns {import('./timeMath.js').ScaledRoundingMode} */
+function readScaledRoundingMode() {
+  const el = document.getElementById("scaled-rounding-mode");
+  const v = el ? /** @type {HTMLSelectElement} */ (el).value : "quarter";
+  if (v === "none" || v === "quarter" || v === "half" || v === "hour") return v;
+  return "quarter";
+}
+
 /**
  * @param {string} baseRaw
  * @param {string} ticketRaw
@@ -218,10 +226,9 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
 
   const secRecord = Object.fromEntries(rows);
   const scaledById = new Map(
-    timeMath.scaledToTargetHours(secRecord, targetScaledH).map((r) => [
-      r.topicId,
-      r.scaledHours,
-    ])
+    timeMath
+      .scaledToTargetHours(secRecord, targetScaledH, readScaledRoundingMode())
+      .map((r) => [r.topicId, r.scaledHours])
   );
   const scaledData = rows.map(([id]) => ({
     label: labels.get(id) ?? id,

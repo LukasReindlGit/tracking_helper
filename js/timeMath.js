@@ -105,21 +105,47 @@ export function remainderHoursToEight(secondsByTopic) {
 }
 
 /**
+ * How to round scaled (proportional) hours for billing-style reporting.
+ * @typedef {'none' | 'quarter' | 'half' | 'hour'} ScaledRoundingMode
+ */
+
+/**
+ * Round a proportional scaled hour value for display/export. Only used on scaled totals per topic.
+ * @param {number} proportionalHours
+ * @param {ScaledRoundingMode} mode
+ * @returns {number}
+ */
+export function applyScaledHoursRounding(proportionalHours, mode) {
+  const h = proportionalHours;
+  if (!Number.isFinite(h) || h <= 0) return 0;
+  if (mode === "none" || mode == null) {
+    return Math.round(h * 10) / 10;
+  }
+  const step = mode === "quarter" ? 0.25 : mode === "half" ? 0.5 : 1;
+  const n = Math.ceil(h / step - 1e-10) * step;
+  return Math.round(n * 10000) / 10000;
+}
+
+/**
  * @param {Record<string, number>} secondsByTopic
  * @param {number} targetHours total hours to scale to (e.g. 8)
+ * @param {ScaledRoundingMode} [roundingMode='quarter'] round-up increment for each topic’s scaled hours
  * @returns {{ topicId: string, scaledHours: number }[]}
  */
-export function scaledToTargetHours(secondsByTopic, targetHours) {
+export function scaledToTargetHours(secondsByTopic, targetHours, roundingMode = "quarter") {
   const t = Number(targetHours);
   if (!Number.isFinite(t) || t < 0) return [];
   const totalSec = Object.values(secondsByTopic).reduce((a, b) => a + b, 0);
   if (totalSec <= 0) return [];
   return Object.entries(secondsByTopic)
     .filter(([, sec]) => sec > 0)
-    .map(([topicId, sec]) => ({
-      topicId,
-      scaledHours: Math.round((sec / totalSec) * t * 10) / 10,
-    }));
+    .map(([topicId, sec]) => {
+      const raw = (sec / totalSec) * t;
+      return {
+        topicId,
+        scaledHours: applyScaledHoursRounding(raw, roundingMode),
+      };
+    });
 }
 
 /**
