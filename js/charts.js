@@ -42,6 +42,22 @@ function readScaledTargetHours() {
   return clamped;
 }
 
+/**
+ * @param {string} baseRaw
+ * @param {string} ticketRaw
+ * @returns {string | null}
+ */
+function buildTicketTrackingUrl(baseRaw, ticketRaw) {
+  const base = baseRaw.trim();
+  const ticket = ticketRaw.trim();
+  if (!base || !ticket) return null;
+  if (base.endsWith("=")) {
+    return base + encodeURIComponent(ticket);
+  }
+  const b = base.replace(/\/+$/, "");
+  return `${b}/${encodeURIComponent(ticket)}`;
+}
+
 function copyTextToClipboard(text) {
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -71,7 +87,7 @@ function wireScaledCopyButton() {
 }
 
 /**
- * @param {{ label: string, value: number }[]} scaledData
+ * @param {{ label: string, value: number, linkBase: string }[]} scaledData
  * @param {boolean} hasRecorded
  * @param {number} targetHours
  */
@@ -107,7 +123,17 @@ function updateScaledTable(scaledData, hasRecorded, targetHours) {
   for (const d of scaledData) {
     const tr = document.createElement("tr");
     const tdLabel = document.createElement("td");
-    tdLabel.textContent = d.label;
+    const href = buildTicketTrackingUrl(d.linkBase, d.label);
+    if (href) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.textContent = d.label;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      tdLabel.appendChild(a);
+    } else {
+      tdLabel.textContent = d.label;
+    }
     const tdH = document.createElement("td");
     tdH.textContent = String(d.value);
     tr.append(tdLabel, tdH);
@@ -119,8 +145,10 @@ function updateScaledTable(scaledData, hasRecorded, targetHours) {
 /**
  * @param {Record<string, number>} secondsByTopic
  * @param {Map<string, string>} labels
+ * @param {Map<string, string> | undefined} linkBases row id → URL prefix for ticket links
  */
-export function updateCharts(secondsByTopic, labels) {
+export function updateCharts(secondsByTopic, labels, linkBases) {
+  const bases = linkBases ?? new Map();
   const ChartCtor = /** @type {any} */ (globalThis).Chart;
   if (!ChartCtor) return;
 
@@ -198,6 +226,7 @@ export function updateCharts(secondsByTopic, labels) {
   const scaledData = rows.map(([id]) => ({
     label: labels.get(id) ?? id,
     value: /** @type {number} */ (scaledById.get(id)),
+    linkBase: bases.get(id) ?? "",
   }));
 
   const scaledTitle = `Scaled to ${formatTargetHoursForUi(targetScaledH)} h`;

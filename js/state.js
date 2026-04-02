@@ -1,4 +1,4 @@
-/** @typedef {{ id: string, label: string, seconds: number }} TrackRow */
+/** @typedef {{ id: string, label: string, linkBaseUrl: string, seconds: number }} TrackRow */
 /** @typedef {{ dayKey: string, rowId: string, startedAt: number }} ActiveTimer */
 /**
  * @typedef {{
@@ -42,7 +42,7 @@ export function getRows(state, dayKey) {
  * @returns {TrackRow}
  */
 export function addRow(state, dayKey) {
-  const row = { id: newId(), label: "", seconds: 0 };
+  const row = { id: newId(), label: "", linkBaseUrl: "", seconds: 0 };
   getRows(state, dayKey).push(row);
   return row;
 }
@@ -129,6 +129,21 @@ export function rowLabelMap(state, dayKey) {
   const m = new Map();
   for (const r of getRows(state, dayKey)) {
     m.set(r.id, r.label.trim() || r.id);
+  }
+  return m;
+}
+
+/**
+ * @param {AppState} state
+ * @param {string} dayKey
+ * @returns {Map<string, string>} row id → tracking page base URL (may be empty)
+ */
+export function rowLinkBaseMap(state, dayKey) {
+  const m = new Map();
+  for (const r of getRows(state, dayKey)) {
+    const u =
+      typeof r.linkBaseUrl === "string" ? r.linkBaseUrl : "";
+    m.set(r.id, u);
   }
   return m;
 }

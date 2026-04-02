@@ -114,6 +114,8 @@ function normalizeRowsState(raw) {
       .map((r) => ({
         id: r.id,
         label: typeof r.label === "string" ? r.label : "",
+        linkBaseUrl:
+          typeof r.linkBaseUrl === "string" ? r.linkBaseUrl : "",
         seconds:
           typeof r.seconds === "number" && r.seconds >= 0 ? r.seconds : 0,
       }));
@@ -168,7 +170,12 @@ function migrateFromLegacyTopicsSegments(raw) {
             sec += Math.max(0, (s.endMs - s.startMs) / 1000);
           }
         }
-        return { id: t.id, label: t.label, seconds: sec };
+        return {
+          id: t.id,
+          label: t.label,
+          linkBaseUrl: "",
+          seconds: sec,
+        };
       });
     }
   } else {
@@ -182,6 +189,7 @@ function migrateFromLegacyTopicsSegments(raw) {
       rowsByDay[day] = Object.entries(byTopic).map(([id, sec]) => ({
         id,
         label: id,
+        linkBaseUrl: "",
         seconds: sec,
       }));
     }
