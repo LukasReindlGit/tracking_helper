@@ -24,22 +24,12 @@ const SCALED_TARGET_MAX = 12;
 const SCALED_TARGET_DEFAULT = 8;
 
 /**
- * @param {number} v
- */
-function formatTargetHoursForUi(v) {
-  const r = Math.round(v * 10) / 10;
-  return Number.isInteger(r) ? String(r) : r.toFixed(1);
-}
-
-/**
  * @param {number} sum
  */
 function formatScaledSumForUi(sum) {
   if (!Number.isFinite(sum)) return "0";
   const r = Math.round(sum * 100) / 100;
-  if (Number.isInteger(r)) return String(r);
-  const s = r.toFixed(2);
-  return s.replace(/\.?0+$/, "");
+  return timeMath.formatTrimmedDecimalForUi(r, 2);
 }
 
 /**
@@ -134,7 +124,12 @@ function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
     thScaled.textContent = `Hours (scaled to ${scaledTotalLabel} h)`;
   }
 
-  lastScaledTsv = scaledData.map((d) => `${d.label}\t${d.value}`).join("\n");
+  lastScaledTsv = scaledData
+    .map(
+      (d) =>
+        `${d.label}\t${timeMath.formatTrimmedDecimalForUi(d.value, 4)}`
+    )
+    .join("\n");
 
   tbody.innerHTML = "";
   for (const d of scaledData) {
@@ -153,7 +148,7 @@ function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
       tdLabel.textContent = d.label;
     }
     const tdH = document.createElement("td");
-    tdH.textContent = String(d.value);
+    tdH.textContent = timeMath.formatTrimmedDecimalForUi(d.value, 4);
     tr.append(tdLabel, tdH);
     tbody.appendChild(tr);
   }
@@ -311,7 +306,8 @@ function renderPie(key, canvas, chartLabels, data, title, backgroundColors) {
           callbacks: {
             label(ctx) {
               const v = ctx.raw;
-              return `${ctx.label}: ${v} h`;
+              const h = timeMath.formatTrimmedDecimalForUi(Number(v), 4);
+              return `${ctx.label}: ${h} h`;
             },
           },
         },

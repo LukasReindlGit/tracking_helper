@@ -9,8 +9,35 @@ export function secondsToDecimalHours(seconds) {
   return Math.round(h * 10) / 10;
 }
 
+/**
+ * @param {number} n
+ * @param {number} fractionDigits
+ * @returns {string} comma as decimal separator
+ */
+export function formatDecimalDigitsForUi(n, fractionDigits) {
+  if (!Number.isFinite(n)) return "0";
+  const factor = 10 ** fractionDigits;
+  const r = Math.round(n * factor) / factor;
+  if (Number.isInteger(r)) return String(r);
+  return r.toFixed(fractionDigits).replace(".", ",");
+}
+
+/**
+ * Round then trim trailing zeros; comma as decimal separator (for scaled hours, sums).
+ * @param {number} n
+ * @param {number} maxDecimals
+ */
+export function formatTrimmedDecimalForUi(n, maxDecimals) {
+  if (!Number.isFinite(n)) return "0";
+  const r = Math.round(n * 10 ** maxDecimals) / 10 ** maxDecimals;
+  if (Number.isInteger(r)) return String(r);
+  const s = r.toFixed(maxDecimals);
+  const trimmed = s.replace(/\.?0+$/, "");
+  return trimmed.replace(".", ",");
+}
+
 export function formatDecimalHours(seconds) {
-  return String(secondsToDecimalHours(seconds));
+  return formatDecimalDigitsForUi(secondsToDecimalHours(seconds), 1);
 }
 
 /**
@@ -31,7 +58,7 @@ export function formatSecondsAsHhMmSs(seconds) {
  * @returns {number} seconds, >= 0
  */
 export function parseTimeInputToSeconds(raw) {
-  const str = String(raw ?? "").trim();
+  const str = String(raw ?? "").trim().replace(/,/g, ".");
   if (!str) return 0;
 
   if (!str.includes(":")) {

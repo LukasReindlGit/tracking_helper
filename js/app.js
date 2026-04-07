@@ -130,8 +130,11 @@ function syncScaledTargetSliderUi() {
   if (!slider || !display) return;
   const v = parseFloat(slider.value);
   const r = Math.round(v * 10) / 10;
-  display.textContent = Number.isInteger(r) ? String(r) : r.toFixed(1);
-  slider.setAttribute("aria-valuenow", display.textContent);
+  display.textContent = timeMath.formatDecimalDigitsForUi(r, 1);
+  slider.setAttribute(
+    "aria-valuenow",
+    Number.isInteger(r) ? String(r) : r.toFixed(1)
+  );
 }
 
 function ensureScaledRoundingPrefs() {
@@ -462,8 +465,7 @@ function renderTrackingRows() {
     btnCopy.addEventListener("click", () => {
       const label = row.label.trim() || row.id;
       const sec = state.effectiveSecondsForRow(appState, day, row, Date.now());
-      const hrs = timeMath.secondsToDecimalHours(sec);
-      copyToClipboard(`${label}\t${hrs}`);
+      copyToClipboard(`${label}\t${timeMath.formatDecimalHours(sec)}`);
     });
 
     const btnRemove = document.createElement("button");

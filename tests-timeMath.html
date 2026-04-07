@@ -196,6 +196,14 @@
       Math.abs(tm.parseTimeInputToSeconds("5.3") - 5.3 * 3600) < 1e-6
     );
     check(
+      "parseTimeInputToSeconds decimal comma",
+      Math.abs(tm.parseTimeInputToSeconds("5,3") - 5.3 * 3600) < 1e-6
+    );
+    check(
+      "formatDecimalHours uses comma",
+      tm.formatDecimalHours(5.3 * 3600) === "5,3"
+    );
+    check(
       "parseTimeInputToSeconds h:mm:ss",
       tm.parseTimeInputToSeconds("1:05:30") === 3600 + 5 * 60 + 30
     );
