@@ -1,4 +1,4 @@
-import { defaultScaledRoundingPrefs } from "./state.js";
+import { defaultScaledRoundingPrefs, trackingDayKey } from "./state.js";
 
 const CONSENT_KEY = "tracking-helper-consent";
 const DATA_KEY = "tracking-helper-v1";
@@ -76,14 +76,6 @@ export function savePersistedState(state, canPersist) {
   } catch {
     /* ignore */
   }
-}
-
-function localDayKey() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 /**
@@ -191,7 +183,7 @@ function migrateFromLegacyTopicsSegments(raw) {
     }));
 
   if (topicList.length > 0) {
-    const days = new Set([...Object.keys(normalized), localDayKey()]);
+    const days = new Set([...Object.keys(normalized), trackingDayKey()]);
     for (const day of days) {
       rowsByDay[day] = topicList.map((t) => {
         let sec = 0;
@@ -237,7 +229,7 @@ function migrateFromLegacyTopicsSegments(raw) {
     const tid = raw.activeTimer.topicId;
     if (topicList.some((t) => t.id === tid)) {
       activeTimer = {
-        dayKey: localDayKey(),
+        dayKey: trackingDayKey(),
         rowId: tid,
         startedAt: raw.activeTimer.startedAt,
       };

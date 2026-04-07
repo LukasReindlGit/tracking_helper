@@ -25,7 +25,7 @@ import sys
 import threading
 import time
 import unittest
-from datetime import date
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from selenium import webdriver
@@ -35,6 +35,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def tracking_day_key_local() -> str:
+    """Match js/state.js trackingDayKey: before 03:00 local, still the previous calendar day."""
+    now = datetime.now()
+    if now.hour < 3:
+        return (now.date() - timedelta(days=1)).isoformat()
+    return now.date().isoformat()
 
 
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -191,7 +199,7 @@ class TrackingHelperSeleniumTests(unittest.TestCase):
         self.assertLessEqual(secs, 3.5)
 
     def test_preseeded_hour_shows_nonzero_decimal_hours(self) -> None:
-        day = date.today().isoformat()
+        day = tracking_day_key_local()
         tid = "seed-topic-id"
         self._load_with_preseeded_storage(
             {

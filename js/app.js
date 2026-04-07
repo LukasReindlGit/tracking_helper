@@ -62,6 +62,9 @@ let dragActiveRowId = null;
 let appState = state.createEmptyState();
 let persist = false;
 
+/** Last seen tracking day (03:00 local rollover); used to pause timer and re-render when the day changes. */
+let lastTrackingDayKey = "";
+
 const els = {
   consentOverlay: /** @type {HTMLElement | null} */ (
     document.getElementById("consent-overlay")
@@ -74,20 +77,21 @@ const els = {
   btnResetConsent: document.getElementById("btn-reset-consent"),
 };
 
-function todayKey() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 function showConsent(show) {
   if (els.consentOverlay) els.consentOverlay.hidden = !show;
 }
 
 function save() {
   storage.savePersistedState(appState, persist);
+}
+
+/** Pause and flush timer if it belongs to a prior tracking day (e.g. after reload or 03:00 rollover). */
+function reconcileActiveTimerToTrackingDay() {
+  const tk = state.trackingDayKey();
+  if (appState.activeTimer && appState.activeTimer.dayKey !== tk) {
+    state.pauseRowTimer(appState, Date.now());
+    save();
+  }
 }
 
 function initFromConsent() {
@@ -109,7 +113,7 @@ function initFromConsent() {
 }
 
 function totalHoursToday() {
-  const day = todayKey();
+  const day = state.trackingDayKey();
   const now = Date.now();
   let sum = 0;
   for (const r of state.getRows(appState, day)) {
@@ -155,7 +159,7 @@ function syncScaledRoundingPrefsToDom() {
 }
 
 function updateChartsSection() {
-  const day = todayKey();
+  const day = state.trackingDayKey();
   const now = Date.now();
   const secMap = state.secondsMapForDay(appState, day, now);
   const labels = state.rowLabelMap(appState, day);
@@ -180,14 +184,14 @@ function updateChartsSection() {
  * @param {import('./state.js').TrackRow} row
  */
 function setHoursInputValue(hoursInp, row) {
-  const day = todayKey();
+  const day = state.trackingDayKey();
   const sec = state.effectiveSecondsForRow(appState, day, row, Date.now());
   hoursInp.value = timeMath.formatSecondsAsHhMmSs(sec);
 }
 
 function tickLiveHours() {
   const at = appState.activeTimer;
-  if (!at || at.dayKey !== todayKey()) return;
+  if (!at || at.dayKey !== state.trackingDayKey()) return;
   const row = state.getRows(appState, at.dayKey).find((r) => r.id === at.rowId);
   if (!row || !els.trackingRows) return;
   if (row.hidden && !appState.showHiddenTrackingRows) return;
@@ -259,7 +263,7 @@ function setupTrackingRowDragDrop() {
       clearTrackingRowDragUi();
       return;
     }
-    const day = todayKey();
+    const day = state.trackingDayKey();
     const t = e.target;
     const endDrop = t instanceof Element ? t.closest(".track-row-end-drop") : null;
     if (endDrop) {
@@ -294,7 +298,7 @@ function syncShowHiddenTrackingCheckbox() {
 function renderTrackingRows() {
   if (!els.trackingRows) return;
   ensureShowHiddenTrackingRowsPref();
-  const day = todayKey();
+  const day = state.trackingDayKey();
   const allRows = state.getRows(appState, day);
   const rows = appState.showHiddenTrackingRows
     ? allRows
@@ -531,13 +535,13 @@ els.consentDecline?.addEventListener("click", () => {
 });
 
 els.btnAddRow?.addEventListener("click", () => {
-  state.addRow(appState, todayKey());
+  state.addRow(appState, state.trackingDayKey());
   save();
   renderAll();
 });
 
 document.getElementById("btn-reset-times")?.addEventListener("click", () => {
-  state.resetSecondsForDay(appState, todayKey(), Date.now());
+  state.resetSecondsForDay(appState, state.trackingDayKey(), Date.now());
   save();
   renderAll();
 });
@@ -583,9 +587,19 @@ document.getElementById("show-hidden-tracking-rows")?.addEventListener("change",
 });
 
 initFromConsent();
+reconcileActiveTimerToTrackingDay();
+lastTrackingDayKey = state.trackingDayKey();
 renderAll();
 syncScaledTargetSliderUi();
 
 setInterval(() => {
-  tickLiveHours();
+  const k = state.trackingDayKey();
+  if (k !== lastTrackingDayKey) {
+    state.pauseRowTimer(appState, Date.now());
+    lastTrackingDayKey = k;
+    save();
+    renderAll();
+  } else {
+    tickLiveHours();
+  }
 }, 1000);

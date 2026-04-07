@@ -41,14 +41,77 @@ function newId() {
   return `t-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Tracking “day” rolls at this local hour (not midnight), so work past midnight stays on the prior day. */
+const TRACKING_DAY_CUTOFF_HOUR = 3;
+
+function formatYmdLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Local tracking day key (`YYYY-MM-DD`). Before {@link TRACKING_DAY_CUTOFF_HOUR}:00, still the previous calendar day.
+ * @param {Date} [date]
+ * @returns {string}
+ */
+export function trackingDayKey(date = new Date()) {
+  const d = new Date(date.getTime());
+  if (d.getHours() < TRACKING_DAY_CUTOFF_HOUR) {
+    d.setDate(d.getDate() - 1);
+  }
+  return formatYmdLocal(d);
+}
+
+/**
+ * Previous calendar date as `YYYY-MM-DD` (for the tracking-day label `dayKey`).
+ * @param {string} dayKey
+ * @returns {string | null}
+ */
+export function previousCalendarDayKey(dayKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  d.setDate(d.getDate() - 1);
+  return formatYmdLocal(d);
+}
+
+/**
+ * First time we see this tracking day: copy row structure from the previous calendar day, seconds reset to 0.
+ * @param {AppState} state
+ * @param {string} dayKey
+ */
+function seedCurrentTrackingDayFromPrevious(state, dayKey) {
+  const prevKey = previousCalendarDayKey(dayKey);
+  const prev = prevKey ? state.rowsByDay[prevKey] : undefined;
+  if (prev && prev.length > 0) {
+    state.rowsByDay[dayKey] = prev.map((r) => ({
+      id: newId(),
+      label: typeof r.label === "string" ? r.label : "",
+      linkBaseUrl: typeof r.linkBaseUrl === "string" ? r.linkBaseUrl : "",
+      seconds: 0,
+      hidden: r.hidden === true,
+    }));
+  } else {
+    state.rowsByDay[dayKey] = [];
+  }
+}
+
 /**
  * @param {AppState} state
  * @param {string} dayKey
+ * @param {number} [nowMs]
  * @returns {TrackRow[]}
  */
-export function getRows(state, dayKey) {
-  if (!state.rowsByDay[dayKey]) {
-    state.rowsByDay[dayKey] = [];
+export function getRows(state, dayKey, nowMs = Date.now()) {
+  if (state.rowsByDay[dayKey] == null) {
+    const cur = trackingDayKey(new Date(nowMs));
+    if (dayKey === cur) {
+      seedCurrentTrackingDayFromPrevious(state, dayKey);
+    } else {
+      state.rowsByDay[dayKey] = [];
+    }
   }
   return state.rowsByDay[dayKey];
 }
