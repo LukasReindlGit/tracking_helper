@@ -1,4 +1,4 @@
-/** @typedef {{ id: string, label: string, linkBaseUrl: string, seconds: number, hidden?: boolean }} TrackRow */
+/** @typedef {{ id: string, label: string, linkBaseUrl: string, seconds: number, hidden?: boolean, scalable?: boolean }} TrackRow */
 /** @typedef {{ dayKey: string, rowId: string, startedAt: number }} ActiveTimer */
 /**
  * Minutes past the lower step required before rounding up; 0 = always round up to next step.
@@ -96,6 +96,7 @@ function seedCurrentTrackingDayFromPrevious(state, dayKey) {
       linkBaseUrl: typeof r.linkBaseUrl === "string" ? r.linkBaseUrl : "",
       seconds: 0,
       hidden: r.hidden === true,
+      ...(r.scalable === false ? { scalable: false } : {}),
     }));
   } else {
     state.rowsByDay[dayKey] = [];
@@ -286,6 +287,19 @@ export function rowLinkBaseMap(state, dayKey) {
     const u =
       typeof r.linkBaseUrl === "string" ? r.linkBaseUrl : "";
     m.set(r.id, u);
+  }
+  return m;
+}
+
+/**
+ * @param {AppState} state
+ * @param {string} dayKey
+ * @returns {Map<string, boolean>} row id → include in proportional scaling (`false` = fixed actual hours)
+ */
+export function rowScalableMap(state, dayKey) {
+  const m = new Map();
+  for (const r of getRows(state, dayKey)) {
+    m.set(r.id, r.scalable !== false);
   }
   return m;
 }

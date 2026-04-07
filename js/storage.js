@@ -113,6 +113,7 @@ function normalizeRowsState(raw) {
         seconds:
           typeof r.seconds === "number" && r.seconds >= 0 ? r.seconds : 0,
         hidden: typeof r.hidden === "boolean" ? r.hidden : false,
+        ...(r.scalable === false ? { scalable: false } : {}),
       }));
   }
   let activeTimer = null;

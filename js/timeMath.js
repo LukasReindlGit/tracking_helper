@@ -150,31 +150,49 @@ export function applyScaledHoursRounding(
  * @param {number} targetHours total hours to scale to (e.g. 8)
  * @param {ScaledRoundingMode} [roundingMode='quarter'] round-up increment for each topic’s scaled hours
  * @param {number} [remainderThresholdMinutes=0] past-step threshold in minutes (see applyScaledHoursRounding)
+ * @param {Map<string, boolean> | null} [scalableByTopic] if set, rows with value `false` keep actual hours (no proportional scale); omitted or other values = scalable
  * @returns {{ topicId: string, scaledHours: number }[]}
  */
 export function scaledToTargetHours(
   secondsByTopic,
   targetHours,
   roundingMode = "quarter",
-  remainderThresholdMinutes = 0
+  remainderThresholdMinutes = 0,
+  scalableByTopic = null
 ) {
   const t = Number(targetHours);
   if (!Number.isFinite(t) || t < 0) return [];
-  const totalSec = Object.values(secondsByTopic).reduce((a, b) => a + b, 0);
-  if (totalSec <= 0) return [];
-  return Object.entries(secondsByTopic)
-    .filter(([, sec]) => sec > 0)
-    .map(([topicId, sec]) => {
-      const raw = (sec / totalSec) * t;
-      return {
-        topicId,
-        scaledHours: applyScaledHoursRounding(
-          raw,
-          roundingMode,
-          remainderThresholdMinutes
-        ),
-      };
-    });
+  const entries = Object.entries(secondsByTopic).filter(([, sec]) => sec > 0);
+  if (entries.length === 0) return [];
+
+  const isScalable = (topicId) =>
+    scalableByTopic == null || scalableByTopic.get(topicId) !== false;
+
+  const fixedSum = entries
+    .filter(([id]) => !isScalable(id))
+    .reduce((s, [, sec]) => s + secondsToDecimalHours(sec), 0);
+
+  const scalableEntries = entries.filter(([id]) => isScalable(id));
+  const totalScalableSec = scalableEntries.reduce((a, [, sec]) => a + sec, 0);
+  const budget = Math.max(0, t - fixedSum);
+
+  return entries.map(([topicId, sec]) => {
+    if (!isScalable(topicId)) {
+      return { topicId, scaledHours: secondsToDecimalHours(sec) };
+    }
+    if (totalScalableSec <= 0 || budget <= 0) {
+      return { topicId, scaledHours: 0 };
+    }
+    const raw = (sec / totalScalableSec) * budget;
+    return {
+      topicId,
+      scaledHours: applyScaledHoursRounding(
+        raw,
+        roundingMode,
+        remainderThresholdMinutes
+      ),
+    };
+  });
 }
 
 /**

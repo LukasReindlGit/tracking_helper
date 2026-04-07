@@ -130,6 +130,40 @@
       byE.a === 3 && byE.b === 5
     );
 
+    const fixedMap = new Map([["a", false]]);
+    const mixedScaled = tm.scaledToTargetHours(
+      { a: 3600, b: 2 * 3600, c: 2 * 3600 },
+      8,
+      "none",
+      0,
+      fixedMap
+    );
+    const byMix = Object.fromEntries(
+      mixedScaled.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours fixed 1h + scalable 2h+2h to 8h (none)",
+      byMix.a === 1 && byMix.b === 3.5 && byMix.c === 3.5
+    );
+
+    const allFixed = tm.scaledToTargetHours(
+      { a: 3600, b: 3600 },
+      8,
+      "quarter",
+      0,
+      new Map([
+        ["a", false],
+        ["b", false],
+      ])
+    );
+    const byAllF = Object.fromEntries(
+      allFixed.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours all fixed: actual hours, no stretch",
+      byAllF.a === 1 && byAllF.b === 1
+    );
+
     const h7 = 4.75 + 7 / 60;
     check(
       "past-step 7 min remainder: 5 min threshold rounds up",

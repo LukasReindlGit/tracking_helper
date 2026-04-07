@@ -346,6 +346,24 @@ body {
   min-width: 8rem;
 }
 
+.track-scalable-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--sf-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.track-scalable-label input {
+  margin: 0;
+  accent-color: var(--sf-brand);
+}
+
 .track-hours {
   flex: 0 0 7.5rem;
   width: 7.5rem;

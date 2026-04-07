@@ -192,7 +192,8 @@ function updateChartsSection() {
   }
 
   const linkBases = state.rowLinkBaseMap(appState, day);
-  updateCharts(secMap, labels, linkBases);
+  const scalableByRow = state.rowScalableMap(appState, day);
+  updateCharts(secMap, labels, linkBases, scalableByRow);
 }
 
 /**
@@ -365,6 +366,28 @@ function renderTrackingRows() {
       updateChartsSection();
     });
 
+    const scalableLbl = document.createElement("label");
+    scalableLbl.className = "track-scalable-label";
+    const scalableChk = document.createElement("input");
+    scalableChk.type = "checkbox";
+    scalableChk.checked = row.scalable !== false;
+    scalableChk.setAttribute(
+      "aria-label",
+      "Include this row in proportional scaling for the scaled chart and billing export"
+    );
+    scalableChk.title =
+      "Unchecked: keep actual hours in the scaled view (e.g. a fixed-length meeting). Checked: this row shares the scaled day total with other checked rows.";
+    scalableChk.addEventListener("change", () => {
+      if (scalableChk.checked) {
+        delete row.scalable;
+      } else {
+        row.scalable = false;
+      }
+      save();
+      updateChartsSection();
+    });
+    scalableLbl.append(scalableChk, document.createTextNode(" Scale"));
+
     const hoursInp = document.createElement("input");
     hoursInp.type = "text";
     hoursInp.className = "input track-hours";
@@ -489,6 +512,7 @@ function renderTrackingRows() {
       btnDrag,
       linkInp,
       labelInp,
+      scalableLbl,
       hoursInp,
       btnStart,
       btnPause,

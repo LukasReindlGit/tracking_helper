@@ -164,8 +164,9 @@ function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
  * @param {Record<string, number>} secondsByTopic
  * @param {Map<string, string>} labels
  * @param {Map<string, string> | undefined} linkBases row id → full URL for scaled-table link (optional)
+ * @param {Map<string, boolean> | undefined} scalableByRow row id → false = fixed hours in scaled view
  */
-export function updateCharts(secondsByTopic, labels, linkBases) {
+export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
   const bases = linkBases ?? new Map();
   const ChartCtor = /** @type {any} */ (globalThis).Chart;
   if (!ChartCtor) return;
@@ -241,7 +242,8 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
         secRecord,
         targetScaledH,
         readScaledRoundingMode(),
-        readScaledRemainderThresholdMinutes()
+        readScaledRemainderThresholdMinutes(),
+        scalableByRow ?? null
       )
       .map((r) => [r.topicId, r.scaledHours])
   );
