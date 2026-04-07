@@ -278,7 +278,7 @@ export function rowLabelMap(state, dayKey) {
 /**
  * @param {AppState} state
  * @param {string} dayKey
- * @returns {Map<string, string>} row id → tracking page base URL (may be empty)
+ * @returns {Map<string, string>} row id → full URL for scaled-table link (may be empty)
  */
 export function rowLinkBaseMap(state, dayKey) {
   const m = new Map();

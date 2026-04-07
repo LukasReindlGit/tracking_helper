@@ -343,10 +343,10 @@ function renderTrackingRows() {
       typeof row.linkBaseUrl === "string" ? row.linkBaseUrl : "";
     linkInp.setAttribute(
       "aria-label",
-      "Optional base URL for opening this ticket (opens in scaled table link)"
+      "Optional full URL for the scaled table link for this row"
     );
     linkInp.title =
-      "Paste the project or list URL up to (but not including) the ticket key. If it ends with = (e.g. …id=), the ticket name is appended directly.";
+      "Paste the exact URL to open for this row; it is used as-is in the scaled table link.";
     linkInp.addEventListener("change", () => {
       row.linkBaseUrl = linkInp.value;
       save();

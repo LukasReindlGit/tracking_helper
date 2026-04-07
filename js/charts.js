@@ -76,22 +76,6 @@ function readScaledRemainderThresholdMinutes() {
   return 0;
 }
 
-/**
- * @param {string} baseRaw
- * @param {string} ticketRaw
- * @returns {string | null}
- */
-function buildTicketTrackingUrl(baseRaw, ticketRaw) {
-  const base = baseRaw.trim();
-  const ticket = ticketRaw.trim();
-  if (!base || !ticket) return null;
-  if (base.endsWith("=")) {
-    return base + encodeURIComponent(ticket);
-  }
-  const b = base.replace(/\/+$/, "");
-  return `${b}/${encodeURIComponent(ticket)}`;
-}
-
 function copyTextToClipboard(text) {
   if (navigator.clipboard?.writeText) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -156,7 +140,8 @@ function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
   for (const d of scaledData) {
     const tr = document.createElement("tr");
     const tdLabel = document.createElement("td");
-    const href = buildTicketTrackingUrl(d.linkBase, d.label);
+    const urlField = typeof d.linkBase === "string" ? d.linkBase : "";
+    const href = urlField.trim() === "" ? null : urlField;
     if (href) {
       const a = document.createElement("a");
       a.href = href;
@@ -178,7 +163,7 @@ function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
 /**
  * @param {Record<string, number>} secondsByTopic
  * @param {Map<string, string>} labels
- * @param {Map<string, string> | undefined} linkBases row id → URL prefix for ticket links
+ * @param {Map<string, string> | undefined} linkBases row id → full URL for scaled-table link (optional)
  */
 export function updateCharts(secondsByTopic, labels, linkBases) {
   const bases = linkBases ?? new Map();
