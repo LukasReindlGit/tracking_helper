@@ -68,9 +68,12 @@ function readScaledRoundingMode() {
   return "quarter";
 }
 
-function readScaledFiveMinThreshold() {
-  const el = document.getElementById("scaled-five-min-threshold");
-  return !!(el && /** @type {HTMLInputElement} */ (el).checked);
+/** @returns {number} 0, 5, 10, or 15 */
+function readScaledRemainderThresholdMinutes() {
+  const el = document.getElementById("scaled-remainder-threshold");
+  const v = el ? parseInt(/** @type {HTMLSelectElement} */ (el).value, 10) : 0;
+  if (v === 0 || v === 5 || v === 10 || v === 15) return v;
+  return 0;
 }
 
 /**
@@ -253,7 +256,7 @@ export function updateCharts(secondsByTopic, labels, linkBases) {
         secRecord,
         targetScaledH,
         readScaledRoundingMode(),
-        readScaledFiveMinThreshold()
+        readScaledRemainderThresholdMinutes()
       )
       .map((r) => [r.topicId, r.scaledHours])
   );

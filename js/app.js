@@ -137,7 +137,19 @@ function syncScaledTargetSliderUi() {
 function ensureScaledRoundingPrefs() {
   if (!appState.scaledRoundingPrefs) {
     appState.scaledRoundingPrefs = state.defaultScaledRoundingPrefs();
+    return;
   }
+  const p = appState.scaledRoundingPrefs;
+  const raw = /** @type {Record<string, unknown>} */ (p);
+  if (typeof p.remainderThresholdMinutes !== "number") {
+    const fb = raw.fiveMinThreshold;
+    p.remainderThresholdMinutes = fb === true ? 5 : 0;
+  }
+  const m = p.remainderThresholdMinutes;
+  if (m !== 0 && m !== 5 && m !== 10 && m !== 15) {
+    p.remainderThresholdMinutes = 0;
+  }
+  delete raw.fiveMinThreshold;
 }
 
 function ensureShowHiddenTrackingRowsPref() {
@@ -151,11 +163,15 @@ function syncScaledRoundingPrefsToDom() {
   ensureScaledRoundingPrefs();
   const p = appState.scaledRoundingPrefs;
   const sel = document.getElementById("scaled-rounding-mode");
-  const chk = /** @type {HTMLInputElement | null} */ (
-    document.getElementById("scaled-five-min-threshold")
+  const thrSel = /** @type {HTMLSelectElement | null} */ (
+    document.getElementById("scaled-remainder-threshold")
   );
   if (sel) sel.value = p.mode;
-  if (chk) chk.checked = p.fiveMinThreshold;
+  if (thrSel) {
+    const m = p.remainderThresholdMinutes;
+    thrSel.value =
+      m === 0 || m === 5 || m === 10 || m === 15 ? String(m) : "0";
+  }
 }
 
 function updateChartsSection() {
@@ -568,11 +584,11 @@ document.getElementById("scaled-rounding-mode")?.addEventListener("change", (ev)
   updateChartsSection();
 });
 
-document.getElementById("scaled-five-min-threshold")?.addEventListener("change", (ev) => {
+document.getElementById("scaled-remainder-threshold")?.addEventListener("change", (ev) => {
   ensureScaledRoundingPrefs();
-  appState.scaledRoundingPrefs.fiveMinThreshold = /** @type {HTMLInputElement} */ (
-    ev.target
-  ).checked;
+  const v = parseInt(/** @type {HTMLSelectElement} */ (ev.target).value, 10);
+  appState.scaledRoundingPrefs.remainderThresholdMinutes =
+    v === 5 || v === 10 || v === 15 ? v : 0;
   save();
   updateChartsSection();
 });

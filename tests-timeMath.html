@@ -106,7 +106,7 @@
       { a: 3 * 3600, b: 2 * 3600 },
       8,
       "quarter",
-      true
+      5
     );
     const by5m = Object.fromEntries(
       scaled5m.map((r) => [r.topicId, r.scaledHours])
@@ -120,7 +120,7 @@
       { a: 3700, b: 5900 },
       8,
       "quarter",
-      true
+      5
     );
     const byE = Object.fromEntries(
       scaledEdge.map((r) => [r.topicId, r.scaledHours])
@@ -128,6 +128,16 @@
     check(
       "5min rule: remainder exactly 5 min rounds down",
       byE.a === 3 && byE.b === 5
+    );
+
+    const h7 = 4.75 + 7 / 60;
+    check(
+      "past-step 7 min remainder: 5 min threshold rounds up",
+      tm.applyScaledHoursRounding(h7, "quarter", 5) === 5
+    );
+    check(
+      "past-step 7 min remainder: 10 min threshold rounds down",
+      tm.applyScaledHoursRounding(h7, "quarter", 10) === 4.75
     );
 
     check(

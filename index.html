@@ -126,20 +126,21 @@
             <option value="half">½ h (30 min)</option>
             <option value="hour">1 h</option>
           </select>
-          <div class="scaled-five-min-wrap">
-            <div
-              class="scaled-five-min-row"
-              title="When rounding to a step (¼ h, ½ h, or 1 h), round up only if more than 5 minutes past the lower step; otherwise round down. Ignored for “no extra rounding”."
+          <div class="scaled-remainder-threshold-wrap">
+            <label class="scaled-rounding-label" for="scaled-remainder-threshold">
+              Past-step threshold
+            </label>
+            <select
+              id="scaled-remainder-threshold"
+              class="input scaled-rounding-select"
+              title="When rounding to a step (¼ h, ½ h, or 1 h): round up only if more than this many minutes past the lower step; otherwise round down. “Always round up” ignores the threshold. Ignored for “no extra rounding”."
+              aria-label="When rounding scaled hours to a step, round up only if more than the chosen minutes past the lower step; always round up skips this rule. Ignored for no extra rounding."
             >
-              <input
-                type="checkbox"
-                id="scaled-five-min-threshold"
-                aria-label="5 min minimum: when rounding to a step (¼ h, ½ h, or 1 h), round up only if more than 5 minutes past the lower step; otherwise round down. Ignored for no extra rounding."
-              />
-              <label class="scaled-five-min-label" for="scaled-five-min-threshold">
-                5 min minimum
-              </label>
-            </div>
+              <option value="0" selected>Always round up to next step</option>
+              <option value="5">Round up only if more than 5 min past lower step</option>
+              <option value="10">Round up only if more than 10 min past lower step</option>
+              <option value="15">Round up only if more than 15 min past lower step</option>
+            </select>
           </div>
         </div>
       </div>

@@ -109,20 +109,17 @@ export function remainderHoursToEight(secondsByTopic) {
  * @typedef {'none' | 'quarter' | 'half' | 'hour'} ScaledRoundingMode
  */
 
-/** Hours: strictly more than this above the lower step → round up; otherwise round down. */
-const FIVE_MINUTES_AS_HOURS = 5 / 60;
-
 /**
  * Round a proportional scaled hour value for display/export. Only used on scaled totals per topic.
  * @param {number} proportionalHours
  * @param {ScaledRoundingMode} mode
- * @param {boolean} [fiveMinThreshold] if true (and mode uses a step), round up only when the remainder above the lower step exceeds 5 minutes; otherwise round down to that step
+ * @param {number} [remainderThresholdMinutes=0] if > 0 (and mode uses a step), round up only when the remainder above the lower step exceeds this many minutes; otherwise round down. 0 = always round up to the next step.
  * @returns {number}
  */
 export function applyScaledHoursRounding(
   proportionalHours,
   mode,
-  fiveMinThreshold = false
+  remainderThresholdMinutes = 0
 ) {
   const h = proportionalHours;
   if (!Number.isFinite(h) || h <= 0) return 0;
@@ -131,18 +128,20 @@ export function applyScaledHoursRounding(
   }
   const step = mode === "quarter" ? 0.25 : mode === "half" ? 0.5 : 1;
 
-  if (!fiveMinThreshold) {
+  const thrMin = Number(remainderThresholdMinutes);
+  if (!Number.isFinite(thrMin) || thrMin <= 0) {
     const n = Math.ceil(h / step - 1e-10) * step;
     return Math.round(n * 10000) / 10000;
   }
 
+  const thresholdHours = thrMin / 60;
   const flo = Math.floor(h / step + 1e-10) * step;
   const cei = Math.ceil(h / step - 1e-10) * step;
   if (Math.abs(cei - flo) < 1e-9) {
     return Math.round(flo * 10000) / 10000;
   }
   const remainder = h - flo;
-  const chosen = remainder > FIVE_MINUTES_AS_HOURS ? cei : flo;
+  const chosen = remainder > thresholdHours ? cei : flo;
   return Math.round(chosen * 10000) / 10000;
 }
 
@@ -150,14 +149,14 @@ export function applyScaledHoursRounding(
  * @param {Record<string, number>} secondsByTopic
  * @param {number} targetHours total hours to scale to (e.g. 8)
  * @param {ScaledRoundingMode} [roundingMode='quarter'] round-up increment for each topic’s scaled hours
- * @param {boolean} [fiveMinThreshold=false] when true, use 5-minute threshold rule for step rounding (see applyScaledHoursRounding)
+ * @param {number} [remainderThresholdMinutes=0] past-step threshold in minutes (see applyScaledHoursRounding)
  * @returns {{ topicId: string, scaledHours: number }[]}
  */
 export function scaledToTargetHours(
   secondsByTopic,
   targetHours,
   roundingMode = "quarter",
-  fiveMinThreshold = false
+  remainderThresholdMinutes = 0
 ) {
   const t = Number(targetHours);
   if (!Number.isFinite(t) || t < 0) return [];
@@ -169,7 +168,11 @@ export function scaledToTargetHours(
       const raw = (sec / totalSec) * t;
       return {
         topicId,
-        scaledHours: applyScaledHoursRounding(raw, roundingMode, fiveMinThreshold),
+        scaledHours: applyScaledHoursRounding(
+          raw,
+          roundingMode,
+          remainderThresholdMinutes
+        ),
       };
     });
 }

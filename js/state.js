@@ -1,9 +1,13 @@
 /** @typedef {{ id: string, label: string, linkBaseUrl: string, seconds: number, hidden?: boolean }} TrackRow */
 /** @typedef {{ dayKey: string, rowId: string, startedAt: number }} ActiveTimer */
 /**
+ * Minutes past the lower step required before rounding up; 0 = always round up to next step.
+ * @typedef {0 | 5 | 10 | 15} RemainderThresholdMinutes
+ */
+/**
  * @typedef {{
  *   mode: 'none' | 'quarter' | 'half' | 'hour',
- *   fiveMinThreshold: boolean
+ *   remainderThresholdMinutes: RemainderThresholdMinutes
  * }} ScaledRoundingPrefs
  */
 /**
@@ -19,7 +23,7 @@
  * @returns {ScaledRoundingPrefs}
  */
 export function defaultScaledRoundingPrefs() {
-  return { mode: "quarter", fiveMinThreshold: false };
+  return { mode: "quarter", remainderThresholdMinutes: 0 };
 }
 
 /**

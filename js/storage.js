@@ -153,8 +153,11 @@ function parseScaledRoundingPrefs(raw) {
   if (m === "none" || m === "quarter" || m === "half" || m === "hour") {
     out.mode = m;
   }
-  if (typeof o.fiveMinThreshold === "boolean") {
-    out.fiveMinThreshold = o.fiveMinThreshold;
+  const rtm = o.remainderThresholdMinutes;
+  if (rtm === 0 || rtm === 5 || rtm === 10 || rtm === 15) {
+    out.remainderThresholdMinutes = rtm;
+  } else if (typeof o.fiveMinThreshold === "boolean") {
+    out.remainderThresholdMinutes = o.fiveMinThreshold ? 5 : 0;
   }
   return out;
 }
