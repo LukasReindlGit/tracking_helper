@@ -164,6 +164,83 @@
       byAllF.a === 1 && byAllF.b === 1
     );
 
+    const effOver = tm.effectiveScaledRows(
+      { a: 5 * 3600, b: 4 * 3600 },
+      8,
+      "quarter",
+      0,
+      null
+    );
+    const byOver = Object.fromEntries(
+      effOver.rows.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "effectiveScaledRows over target: actual hours, no scale-down",
+      effOver.mode === "actual" &&
+        byOver.a === 5 &&
+        byOver.b === 4 &&
+        effOver.totalRecordedHours === 9
+    );
+
+    const effUnder = tm.effectiveScaledRows(
+      { a: 3 * 3600, b: 2 * 3600 },
+      8,
+      "none"
+    );
+    const byUnder = Object.fromEntries(
+      effUnder.rows.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "effectiveScaledRows under target matches scaledToTargetHours",
+      effUnder.mode === "scaled" &&
+        byUnder.a === 4.8 &&
+        byUnder.b === 3.2
+    );
+
+    const fixedMap2 = new Map([
+      ["a", false],
+      ["b", false],
+    ]);
+    const effMixOver = tm.effectiveScaledRows(
+      { a: 5 * 3600, b: 4 * 3600 },
+      8,
+      "quarter",
+      0,
+      fixedMap2
+    );
+    const byMixOver = Object.fromEntries(
+      effMixOver.rows.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "effectiveScaledRows over target mixed fixed/scalable: all actual",
+      effMixOver.mode === "actual" &&
+        byMixOver.a === 5 &&
+        byMixOver.b === 4
+    );
+
+    check(
+      "totalRecordedDecimalHours",
+      tm.totalRecordedDecimalHours({ a: 3 * 3600, b: 2 * 3600 }) === 5
+    );
+
+    const sec401 = Math.round(4.01 * 3600);
+    const effDisplay8 = tm.effectiveScaledRows(
+      { a: sec401, b: sec401 },
+      8,
+      "quarter",
+      0,
+      null
+    );
+    const by401 = Object.fromEntries(
+      effDisplay8.rows.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "effectiveScaledRows raw>target but displayed sum at target: still scaled + rounding",
+      effDisplay8.mode === "scaled" &&
+        by401.a === 4 &&
+        by401.b === 4
+    );
+
     const h7 = 4.75 + 7 / 60;
     check(
       "past-step 7 min remainder: 5 min threshold rounds up",

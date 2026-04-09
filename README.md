@@ -26,7 +26,7 @@ The problem is familiar: logging hours at the end of the day is tedious and inac
 - **EU/Germany**: include **cookie consent** before using non-essential storage or tracking mechanisms.
 - **Salesforce-aligned UX**: visual language inspired by Salesforce so the tool feels consistent with the system where numbers are ultimately entered—without automating SF integration.
 - **Flexible topics**: simple add/remove of what you track.
-- **Reporting visuals**: pie charts for the day—both “actual vs 8 h” (including remainder) and a **scaled** view that redistributes recorded time proportionally to fill an 8 h day for allocation-style reporting.
+- **Reporting visuals**: pie charts for the day—“recorded vs 8 h” (including remainder when under 8 h) and a **scaled** view that stretches proportional rows to the **target day total** you choose (slider, default 8 h). When your recorded total is **above** that target, the app does **not** scale down: it shows **actual** hours per topic in the second chart and copy table. **Total recorded today** appears in the Charts section whenever there is data.
 
 **Deployment intent**
 
@@ -66,7 +66,7 @@ styling should look like salesforce.
 
 - Fast daily use with minimal friction at end of day.
 - One-click or low-friction **copy** of ticket identifier + **decimal hours** (e.g. `5.3`).
-- Clear charts: raw day composition vs 8 h, plus scaled-to-8 h breakdown.
+- Clear charts: raw day composition vs 8 h, plus scaled breakdown to a chosen target; total recorded hours visible; no scale-down when recorded time exceeds that target.
 - Consent-gated storage for German/EU visitors.
 
 ## Change requests

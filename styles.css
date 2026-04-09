@@ -379,6 +379,13 @@ body {
   margin-top: 0.25rem;
 }
 
+.charts-total-recorded {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--sf-text-default);
+}
+
 .totals-overflow {
   margin: 0 0 0.5rem;
   font-size: 0.8125rem;

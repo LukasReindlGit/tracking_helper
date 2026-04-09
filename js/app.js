@@ -183,12 +183,16 @@ function updateChartsSection() {
   const secMap = state.secondsMapForDay(appState, day, now);
   const labels = state.rowLabelMap(appState, day);
   const totalH = totalHoursToday();
+  const totalRecordedLabel = timeMath.formatTrimmedDecimalForUi(
+    timeMath.totalRecordedDecimalHours(secMap),
+    2
+  );
 
   if (els.chartsOverflow) {
     if (totalH > 8 + 1e-6) {
       els.chartsOverflow.hidden = false;
       els.chartsOverflow.textContent =
-        "Total recorded today is over 8 h; the “Remaining” slice is hidden in the first chart.";
+        `Total recorded: ${totalRecordedLabel} h (over 8 h); the “Remaining” slice is hidden in the first chart.`;
     } else {
       els.chartsOverflow.hidden = true;
     }

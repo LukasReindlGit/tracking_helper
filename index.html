@@ -76,6 +76,7 @@
 
     <section class="card charts-card" aria-labelledby="charts-heading">
       <h2 id="charts-heading">Charts</h2>
+      <p id="charts-total-recorded" class="charts-total-recorded" hidden></p>
       <p id="charts-overflow" class="totals-overflow" hidden></p>
       <div class="charts-grid">
         <div class="chart-block">
@@ -89,7 +90,7 @@
         <div class="chart-block">
           <h3>Scaled day total</h3>
           <p class="chart-caption">
-            Proportions from your recorded time, stretched to the target total you set below (default 8 h).
+            Proportions from your recorded time, stretched to the target total you set below (default 8 h). If you recorded more than that target, hours are not scaled down—actual times are shown.
           </p>
           <div class="chart-canvas-wrap">
             <canvas id="chart-scaled" aria-label="Pie chart scaled to a chosen day total"></canvas>

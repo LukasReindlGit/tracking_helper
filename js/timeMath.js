@@ -229,3 +229,93 @@ export function scaledToTargetHours(
 export function scaledToEightHours(secondsByTopic) {
   return scaledToTargetHours(secondsByTopic, 8);
 }
+
+/**
+ * Single total from raw seconds (one decimal), for “total recorded” display.
+ * @param {Record<string, number>} secondsByTopic
+ * @returns {number}
+ */
+export function totalRecordedDecimalHours(secondsByTopic) {
+  const totalSec = Object.values(secondsByTopic).reduce((a, b) => a + b, 0);
+  return secondsToDecimalHours(totalSec);
+}
+
+/**
+ * @typedef {'scaled' | 'actual'} EffectiveScaledMode
+ */
+
+/**
+ * Scales proportional rows to `targetHours` when the sum of per-row one-decimal hours is at or
+ * below the target; when that sum exceeds the target, returns actual hours per topic (no compression).
+ * @param {Record<string, number>} secondsByTopic
+ * @param {number} targetHours
+ * @param {ScaledRoundingMode} [roundingMode='quarter']
+ * @param {number} [remainderThresholdMinutes=0]
+ * @param {Map<string, boolean> | null} [scalableByTopic]
+ * @returns {{ mode: EffectiveScaledMode, rows: { topicId: string, scaledHours: number }[], totalRecordedHours: number, targetHours: number }}
+ */
+export function effectiveScaledRows(
+  secondsByTopic,
+  targetHours,
+  roundingMode = "quarter",
+  remainderThresholdMinutes = 0,
+  scalableByTopic = null
+) {
+  const t = Number(targetHours);
+  const totalSec = Object.values(secondsByTopic).reduce((a, b) => a + b, 0);
+  const totalRecordedHours = secondsToDecimalHours(totalSec);
+
+  if (!Number.isFinite(t) || t < 0) {
+    return {
+      mode: "scaled",
+      rows: [],
+      totalRecordedHours,
+      targetHours: t,
+    };
+  }
+
+  const entries = Object.entries(secondsByTopic).filter(([, sec]) => sec > 0);
+  if (entries.length === 0) {
+    return {
+      mode: "scaled",
+      rows: [],
+      totalRecordedHours,
+      targetHours: t,
+    };
+  }
+
+  // Sum of per-row one-decimal hours (same basis as the “Recorded vs 8 h” chart). Using raw
+  // totalSec/3600 here wrongly flipped to “actual” when the raw sum barely exceeded the target
+  // while displayed row totals still summed to at most the target — which skipped scaling/rounding.
+  const totalDisplayedHours = entries.reduce(
+    (s, [, sec]) => s + secondsToDecimalHours(sec),
+    0
+  );
+
+  if (totalDisplayedHours > t + 1e-9) {
+    const rows = entries.map(([topicId, sec]) => ({
+      topicId,
+      scaledHours: secondsToDecimalHours(sec),
+    }));
+    return {
+      mode: "actual",
+      rows,
+      totalRecordedHours,
+      targetHours: t,
+    };
+  }
+
+  const rows = scaledToTargetHours(
+    secondsByTopic,
+    t,
+    roundingMode,
+    remainderThresholdMinutes,
+    scalableByTopic
+  );
+  return {
+    mode: "scaled",
+    rows,
+    totalRecordedHours,
+    targetHours: t,
+  };
+}

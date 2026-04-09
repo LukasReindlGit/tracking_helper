@@ -95,11 +95,36 @@ function wireScaledCopyButton() {
 }
 
 /**
+ * @param {boolean} hasRecorded
+ * @param {number} totalRecordedHours
+ */
+function updateChartsTotalLine(hasRecorded, totalRecordedHours) {
+  const el = document.getElementById("charts-total-recorded");
+  if (!el) return;
+  if (!hasRecorded) {
+    el.hidden = true;
+    el.textContent = "";
+    return;
+  }
+  el.hidden = false;
+  const label = timeMath.formatTrimmedDecimalForUi(totalRecordedHours, 2);
+  el.textContent = `Total recorded today: ${label} h`;
+}
+
+/**
  * @param {{ label: string, value: number, linkBase: string }[]} scaledData
  * @param {boolean} hasRecorded
  * @param {string} scaledTotalLabel formatted sum of scaled row hours (after rounding)
+ * @param {'scaled' | 'actual'} [mode]
+ * @param {number} [targetHours]
  */
-function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
+function updateScaledTable(
+  scaledData,
+  hasRecorded,
+  scaledTotalLabel,
+  mode = "scaled",
+  targetHours = 8
+) {
   const section = document.getElementById("scaled-table-section");
   const tbody = document.getElementById("scaled-copy-tbody");
   const titleEl = document.querySelector(".scaled-table-title");
@@ -117,11 +142,18 @@ function updateScaledTable(scaledData, hasRecorded, scaledTotalLabel) {
     return;
   }
 
+  const targetStr = timeMath.formatTrimmedDecimalForUi(targetHours, 1);
   if (titleEl) {
-    titleEl.textContent = `Scaled to ${scaledTotalLabel} h — copy`;
+    titleEl.textContent =
+      mode === "actual"
+        ? `Actual hours (${scaledTotalLabel} h total) — over ${targetStr} h target — copy`
+        : `Scaled to ${scaledTotalLabel} h — copy`;
   }
   if (thScaled) {
-    thScaled.textContent = `Hours (scaled to ${scaledTotalLabel} h)`;
+    thScaled.textContent =
+      mode === "actual"
+        ? "Hours (actual — not scaled down)"
+        : `Hours (scaled to ${scaledTotalLabel} h)`;
   }
 
   lastScaledTsv = scaledData
@@ -190,7 +222,8 @@ export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
   if (!hasRecorded) {
     destroyIfExists("chartVs8");
     destroyIfExists("chartScaled");
-    updateScaledTable([], false, "");
+    updateChartsTotalLine(false, 0);
+    updateScaledTable([], false, "", "scaled", 0);
     return;
   }
 
@@ -231,16 +264,17 @@ export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
   );
 
   const secRecord = Object.fromEntries(rows);
+  const effective = timeMath.effectiveScaledRows(
+    secRecord,
+    targetScaledH,
+    readScaledRoundingMode(),
+    readScaledRemainderThresholdMinutes(),
+    scalableByRow ?? null
+  );
+  updateChartsTotalLine(true, effective.totalRecordedHours);
+
   const scaledById = new Map(
-    timeMath
-      .scaledToTargetHours(
-        secRecord,
-        targetScaledH,
-        readScaledRoundingMode(),
-        readScaledRemainderThresholdMinutes(),
-        scalableByRow ?? null
-      )
-      .map((r) => [r.topicId, r.scaledHours])
+    effective.rows.map((r) => [r.topicId, r.scaledHours])
   );
   const scaledData = rows.map(([id]) => ({
     label: labels.get(id) ?? id,
@@ -249,7 +283,10 @@ export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
   }));
 
   const scaledTotalLabel = formatScaledSumForUi(scaledDataSumHours(scaledData));
-  const scaledTitle = `Scaled to ${scaledTotalLabel} h`;
+  const scaledTitle =
+    effective.mode === "actual"
+      ? `Actual hours (${scaledTotalLabel} h total)`
+      : `Scaled to ${scaledTotalLabel} h`;
 
   renderPie(
     "chartScaled",
@@ -259,7 +296,13 @@ export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
     scaledTitle
   );
 
-  updateScaledTable(scaledData, true, scaledTotalLabel);
+  updateScaledTable(
+    scaledData,
+    true,
+    scaledTotalLabel,
+    effective.mode,
+    effective.targetHours
+  );
 }
 
 /** @type {Record<string, { destroy: () => void }>} */
