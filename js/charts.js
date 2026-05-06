@@ -2,6 +2,13 @@
 
 import * as timeMath from "./timeMath.js";
 
+/**
+ * Chart style for both “Recorded vs 8 h” and scaled breakdown.
+ * Use `"decomposition"` for a horizontal stacked bar, or `"pie"` for pie charts.
+ * @type {"decomposition" | "pie"}
+ */
+const CHART_TYPE = "decomposition";
+
 const COLORS = [
   "#0176D3",
   "#2E844A",
@@ -13,7 +20,7 @@ const COLORS = [
   "#3BA755",
 ];
 
-/** Fills the 8 h pie when recorded total is under 8 h */
+/** Grey segment for “Remaining” hours up to an 8 h day (vs-8 chart). */
 const REMAINDER_SLICE_COLOR = "#d8dde6";
 
 /** @type {string} */
@@ -254,7 +261,7 @@ export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
     return c;
   });
 
-  renderPie(
+  renderTopicChart(
     "chartVs8",
     vs8Canvas,
     vs8Labels,
@@ -288,13 +295,10 @@ export function updateCharts(secondsByTopic, labels, linkBases, scalableByRow) {
       ? `Actual hours (${scaledTotalLabel} h total)`
       : `Scaled to ${scaledTotalLabel} h`;
 
-  renderPie(
-    "chartScaled",
-    scaledCanvas,
-    scaledData.map((d) => d.label),
-    scaledData.map((d) => d.value),
-    scaledTitle
-  );
+  const scaledLabels = scaledData.map((d) => d.label);
+  const scaledValues = scaledData.map((d) => d.value);
+  const scaledBg = scaledLabels.map((_, i) => COLORS[i % COLORS.length]);
+  renderTopicChart("chartScaled", scaledCanvas, scaledLabels, scaledValues, scaledTitle, scaledBg);
 
   updateScaledTable(
     scaledData,
@@ -314,7 +318,23 @@ const instances = {};
  * @param {string[]} chartLabels
  * @param {number[]} data
  * @param {string} title
- * @param {string[] | undefined} backgroundColors per-slice colors (defaults to COLORS rotation)
+ * @param {string[] | undefined} backgroundColors per-segment colors (defaults to COLORS rotation)
+ */
+function renderTopicChart(key, canvas, chartLabels, data, title, backgroundColors) {
+  if (CHART_TYPE === "pie") {
+    renderPie(key, canvas, chartLabels, data, title, backgroundColors);
+  } else {
+    renderDecomposition(key, canvas, chartLabels, data, title, backgroundColors);
+  }
+}
+
+/**
+ * @param {string} key
+ * @param {HTMLCanvasElement | null} canvas
+ * @param {string[]} chartLabels
+ * @param {number[]} data
+ * @param {string} title
+ * @param {string[] | undefined} backgroundColors
  */
 function renderPie(key, canvas, chartLabels, data, title, backgroundColors) {
   if (!canvas) return;
@@ -351,6 +371,83 @@ function renderPie(key, canvas, chartLabels, data, title, backgroundColors) {
               const v = ctx.raw;
               const h = timeMath.formatTrimmedDecimalForUi(Number(v), 4);
               return `${ctx.label}: ${h} h`;
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Horizontal stacked bar: one row, segments left-to-right (same order as pie slices).
+ * @param {string} key
+ * @param {HTMLCanvasElement | null} canvas
+ * @param {string[]} chartLabels
+ * @param {number[]} data
+ * @param {string} title
+ * @param {string[] | undefined} backgroundColors
+ */
+function renderDecomposition(key, canvas, chartLabels, data, title, backgroundColors) {
+  if (!canvas) return;
+  destroyIfExists(key);
+  const ChartCtor = /** @type {any} */ (globalThis).Chart;
+  const bg =
+    backgroundColors ??
+    chartLabels.map((_, i) => COLORS[i % COLORS.length]);
+  instances[key] = new ChartCtor(canvas, {
+    type: "bar",
+    data: {
+      labels: [""],
+      datasets: chartLabels.map((label, i) => ({
+        label,
+        data: [data[i] ?? 0],
+        backgroundColor: bg[i],
+        borderWidth: 1,
+        borderColor: "#fff",
+      })),
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      datasets: {
+        bar: { maxBarThickness: 44 },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: {
+            font: { size: 10 },
+            callback(v) {
+              return `${v} h`;
+            },
+          },
+        },
+        y: {
+          stacked: true,
+          display: false,
+        },
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: title,
+          font: { size: 12, weight: "600" },
+          padding: { bottom: 8 },
+        },
+        legend: {
+          position: "bottom",
+          labels: { boxWidth: 12, font: { size: 10 } },
+        },
+        tooltip: {
+          callbacks: {
+            label(ctx) {
+              const v = ctx.raw;
+              const h = timeMath.formatTrimmedDecimalForUi(Number(v), 4);
+              const name = ctx.dataset?.label ?? "";
+              return `${name}: ${h} h`;
             },
           },
         },
