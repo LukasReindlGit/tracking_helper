@@ -380,10 +380,10 @@ function renderTrackingRows() {
     scalableChk.checked = row.scalable !== false;
     scalableChk.setAttribute(
       "aria-label",
-      "Include this row in proportional scaling for the scaled chart and billing export"
+      "Include this row in proportional scaling to the day target; when off, hours are still rounded with your step and threshold but not stretched to the target"
     );
     scalableChk.title =
-      "Unchecked: keep actual hours in the scaled view (e.g. a fixed-length meeting). Checked: this row shares the scaled day total with other checked rows.";
+      "Unchecked: use recorded time rounded with your scale-up step and past-step threshold, but do not include this row in proportional scaling to the day total (e.g. a fixed meeting). Checked: this row shares the scaled total with other checked rows.";
     scalableChk.addEventListener("change", () => {
       if (scalableChk.checked) {
         delete row.scalable;

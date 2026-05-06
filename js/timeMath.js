@@ -137,6 +137,14 @@ export function remainderHoursToEight(secondsByTopic) {
  */
 
 /**
+ * @param {number} h
+ * @returns {number}
+ */
+function quantizeScaledHour(h) {
+  return Math.round(h * 10000) / 10000;
+}
+
+/**
  * Round a proportional scaled hour value for display/export. Only used on scaled totals per topic.
  * @param {number} proportionalHours
  * @param {ScaledRoundingMode} mode
@@ -158,27 +166,91 @@ export function applyScaledHoursRounding(
   const thrMin = Number(remainderThresholdMinutes);
   if (!Number.isFinite(thrMin) || thrMin <= 0) {
     const n = Math.ceil(h / step - 1e-10) * step;
-    return Math.round(n * 10000) / 10000;
+    return quantizeScaledHour(n);
   }
 
-  const thresholdHours = thrMin / 60;
   const flo = Math.floor(h / step + 1e-10) * step;
   const cei = Math.ceil(h / step - 1e-10) * step;
   if (Math.abs(cei - flo) < 1e-9) {
-    return Math.round(flo * 10000) / 10000;
+    return quantizeScaledHour(flo);
   }
-  const remainder = h - flo;
-  const chosen = remainder > thresholdHours ? cei : flo;
-  return Math.round(chosen * 10000) / 10000;
+  // Compare remainder past the lower step in whole minutes so “exactly N min” is stable vs float noise.
+  const remainderMinutes = (h - flo) * 60;
+  const chosen =
+    remainderMinutes > thrMin + 1e-9 ? cei : flo;
+  return quantizeScaledHour(chosen);
+}
+
+/**
+ * After per-topic threshold rounding, move whole steps between scalable rows so their scaled
+ * hours sum to `budget` (largest-remainder style: adjust topics with the biggest raw vs rounded gap).
+ * @param {{ topicId: string, raw: number, scaledHours: number }[]} scalableRows
+ * @param {number} budget
+ * @param {number} step quarter 0.25, half 0.5, hour 1, none 0.1
+ */
+function reconcileScalableHoursToBudget(scalableRows, budget, step) {
+  if (scalableRows.length === 0 || !Number.isFinite(budget)) return;
+  const tol = 1e-7;
+  const maxIter = 10000;
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    let sum = 0;
+    for (const r of scalableRows) sum += r.scaledHours;
+    const diff = budget - sum;
+    if (Math.abs(diff) < tol) return;
+
+    /** @type {{ i: number, delta: number, newErr: number }[]} */
+    const moves = [];
+    for (let i = 0; i < scalableRows.length; i++) {
+      for (const delta of [step, -step]) {
+        const next = scalableRows[i].scaledHours + delta;
+        if (next < -tol) continue;
+        const newSum = sum + delta;
+        const newErr = Math.abs(budget - newSum);
+        moves.push({ i, delta, newErr });
+      }
+    }
+
+    const errBefore = Math.abs(diff);
+    let minErr = Infinity;
+    for (const m of moves) {
+      if (m.newErr < minErr - 1e-15) minErr = m.newErr;
+    }
+    if (minErr + 1e-12 >= errBefore) return;
+
+    const bestMoves = moves.filter((m) => Math.abs(m.newErr - minErr) < 1e-12);
+    if (bestMoves.length === 0) return;
+
+    bestMoves.sort((a, b) => {
+      const ra = scalableRows[a.i];
+      const rb = scalableRows[b.i];
+      const underA = ra.raw - ra.scaledHours;
+      const underB = rb.raw - rb.scaledHours;
+      const overA = ra.scaledHours - ra.raw;
+      const overB = rb.scaledHours - rb.raw;
+      if (a.delta > 0 && b.delta > 0) {
+        if (Math.abs(underB - underA) > 1e-12) return underB - underA;
+      } else if (a.delta < 0 && b.delta < 0) {
+        if (Math.abs(overB - overA) > 1e-12) return overB - overA;
+      }
+      if (a.i !== b.i) return a.i - b.i;
+      return b.delta - a.delta;
+    });
+
+    const pick = bestMoves[0];
+    scalableRows[pick.i].scaledHours = quantizeScaledHour(
+      scalableRows[pick.i].scaledHours + pick.delta
+    );
+  }
 }
 
 /**
  * @param {Record<string, number>} secondsByTopic
  * @param {number} targetHours total hours to scale to (e.g. 8)
- * @param {ScaledRoundingMode} [roundingMode='quarter'] round-up increment for each topic’s scaled hours
+ * @param {ScaledRoundingMode} [roundingMode='quarter'] step grid for each topic’s scaled hours (¼, ½, 1 h, or one decimal)
  * @param {number} [remainderThresholdMinutes=0] past-step threshold in minutes (see applyScaledHoursRounding)
- * @param {Map<string, boolean> | null} [scalableByTopic] if set, rows with value `false` keep actual hours (no proportional scale); omitted or other values = scalable
- * @returns {{ topicId: string, scaledHours: number }[]}
+ * @param {Map<string, boolean> | null} [scalableByTopic] if set, rows with value `false` are not proportionally scaled; their hours are still rounded with the same mode and threshold. Omitted or other values = scalable.
+ * @returns {{ topicId: string, scaledHours: number }[]} Scalable rows are proportional to recorded time, each rounded with the threshold rule, then adjusted in whole steps so their total equals the scalable budget (target minus fixed rows).
  */
 export function scaledToTargetHours(
   secondsByTopic,
@@ -197,27 +269,74 @@ export function scaledToTargetHours(
 
   const fixedSum = entries
     .filter(([id]) => !isScalable(id))
-    .reduce((s, [, sec]) => s + secondsToDecimalHours(sec), 0);
+    .reduce((s, [, sec]) => {
+      const actualH = sec / 3600;
+      return (
+        s +
+        applyScaledHoursRounding(
+          actualH,
+          roundingMode,
+          remainderThresholdMinutes
+        )
+      );
+    }, 0);
 
   const scalableEntries = entries.filter(([id]) => isScalable(id));
   const totalScalableSec = scalableEntries.reduce((a, [, sec]) => a + sec, 0);
   const budget = Math.max(0, t - fixedSum);
 
+  const step =
+    roundingMode === "quarter"
+      ? 0.25
+      : roundingMode === "half"
+        ? 0.5
+        : roundingMode === "hour"
+          ? 1
+          : 0.1;
+
+  /** @type {{ topicId: string, raw: number, scaledHours: number }[]} */
+  const scalableWork = [];
+
+  for (const [topicId, sec] of scalableEntries) {
+    if (totalScalableSec <= 0 || budget <= 0) {
+      scalableWork.push({ topicId, raw: 0, scaledHours: 0 });
+      continue;
+    }
+    const raw = (sec / totalScalableSec) * budget;
+    const scaledHours = applyScaledHoursRounding(
+      raw,
+      roundingMode,
+      remainderThresholdMinutes
+    );
+    scalableWork.push({ topicId, raw, scaledHours });
+  }
+
+  if (scalableWork.length > 0 && budget > 0 && totalScalableSec > 0) {
+    reconcileScalableHoursToBudget(scalableWork, budget, step);
+  }
+
+  const scaledByTopicId = new Map(
+    scalableWork.map((r) => [r.topicId, r.scaledHours])
+  );
+
   return entries.map(([topicId, sec]) => {
     if (!isScalable(topicId)) {
-      return { topicId, scaledHours: secondsToDecimalHours(sec) };
+      const actualH = sec / 3600;
+      return {
+        topicId,
+        scaledHours: applyScaledHoursRounding(
+          actualH,
+          roundingMode,
+          remainderThresholdMinutes
+        ),
+      };
     }
     if (totalScalableSec <= 0 || budget <= 0) {
       return { topicId, scaledHours: 0 };
     }
-    const raw = (sec / totalScalableSec) * budget;
     return {
       topicId,
-      scaledHours: applyScaledHoursRounding(
-        raw,
-        roundingMode,
-        remainderThresholdMinutes
-      ),
+      scaledHours: /** @type {number} */ (scaledByTopicId.get(topicId)),
     };
   });
 }

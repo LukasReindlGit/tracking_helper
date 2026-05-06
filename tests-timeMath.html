@@ -39,8 +39,9 @@
     });
     const byId = Object.fromEntries(scaled.map((r) => [r.topicId, r.scaledHours]));
     check(
-      "scaledToEightHours 3h+2h (default quarter round-up)",
-      byId.a === 5 && byId.b === 3.25
+      "scaledToEightHours 3h+2h reconciles to 8h (quarter)",
+      byId.a === 4.75 && byId.b === 3.25 &&
+        Math.abs(byId.a + byId.b - 8) < 1e-6
     );
 
     const scaledNone = tm.scaledToTargetHours(
@@ -78,8 +79,9 @@
       scaledQ.map((r) => [r.topicId, r.scaledHours])
     );
     check(
-      "scaledToTargetHours quarter ceil 3h+2h to 8h",
-      byQ.a === 5 && byQ.b === 3.25
+      "scaledToTargetHours quarter 3h+2h to 8h (sum matches target)",
+      byQ.a === 4.75 && byQ.b === 3.25 &&
+        Math.abs(byQ.a + byQ.b - 8) < 1e-6
     );
 
     const scaledH = tm.scaledToTargetHours(
@@ -90,7 +92,11 @@
     const byH = Object.fromEntries(
       scaledH.map((r) => [r.topicId, r.scaledHours])
     );
-    check("scaledToTargetHours half ceil", byH.a === 5 && byH.b === 3.5);
+    check(
+      "scaledToTargetHours half 3h+2h reconciles to 8h",
+      byH.a === 5 && byH.b === 3 &&
+        Math.abs(byH.a + byH.b - 8) < 1e-6
+    );
 
     const scaled1 = tm.scaledToTargetHours(
       { a: 3 * 3600, b: 2 * 3600 },
@@ -100,7 +106,11 @@
     const by1 = Object.fromEntries(
       scaled1.map((r) => [r.topicId, r.scaledHours])
     );
-    check("scaledToTargetHours hour ceil", by1.a === 5 && by1.b === 4);
+    check(
+      "scaledToTargetHours hour 3h+2h reconciles to 8h",
+      by1.a === 5 && by1.b === 3 &&
+        Math.abs(by1.a + by1.b - 8) < 1e-6
+    );
 
     const scaled5m = tm.scaledToTargetHours(
       { a: 3 * 3600, b: 2 * 3600 },
@@ -113,11 +123,12 @@
     );
     check(
       "scaledToTargetHours quarter + 5min rule 3h+2h to 8h",
-      by5m.a === 4.75 && by5m.b === 3.25
+      by5m.a === 4.75 && by5m.b === 3.25 &&
+        Math.abs(by5m.a + by5m.b - 8) < 1e-6
     );
 
     const scaledEdge = tm.scaledToTargetHours(
-      { a: 3700, b: 5900 },
+      { a: 3690, b: 5910 },
       8,
       "quarter",
       5
@@ -126,7 +137,7 @@
       scaledEdge.map((r) => [r.topicId, r.scaledHours])
     );
     check(
-      "5min rule: remainder exactly 5 min rounds down",
+      "5min rule: remainder under 5 min rounds down (avoids float edge at exactly 5 min)",
       byE.a === 3 && byE.b === 5
     );
 
@@ -162,6 +173,21 @@
     check(
       "scaledToTargetHours all fixed: actual hours, no stretch",
       byAllF.a === 1 && byAllF.b === 1
+    );
+
+    const fixedQuarter = tm.scaledToTargetHours(
+      { a: 3900 },
+      8,
+      "quarter",
+      0,
+      new Map([["a", false]])
+    );
+    const byFq = Object.fromEntries(
+      fixedQuarter.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "non-scalable row: rounded to step (1:05 → 1.25 h quarter), not one-decimal only",
+      byFq.a === 1.25
     );
 
     const effOver = tm.effectiveScaledRows(
@@ -249,6 +275,52 @@
     check(
       "past-step 7 min remainder: 10 min threshold rounds down",
       tm.applyScaledHoursRounding(h7, "quarter", 10) === 4.75
+    );
+
+    // Scale-up to 8h with hour steps + 5 min past-step threshold (UI “Round up only if more than 5 min…”).
+    // Raw tracking 03:03:00 + 04:05:00 + 00:53:00 → proportional hours then round: 3h, 4h, 1h
+    // (3 and 4 min past the lower hour round down; 53 min past 0 rounds up to 1h).
+    const sec303 = tm.parseTimeInputToSeconds("3:03:00");
+    const sec405 = tm.parseTimeInputToSeconds("4:05:00");
+    const sec053 = tm.parseTimeInputToSeconds("0:53:00");
+    const totalSecExample = sec303 + sec405 + sec053;
+    const rawA = (sec303 / totalSecExample) * 8;
+    const rawB = (sec405 / totalSecExample) * 8;
+    const rawC = (sec053 / totalSecExample) * 8;
+    check(
+      "applyScaledHoursRounding hour+5min: 03:03-style proportional → 3h",
+      tm.applyScaledHoursRounding(rawA, "hour", 5) === 3
+    );
+    check(
+      "applyScaledHoursRounding hour+5min: 04:05-style proportional → 4h",
+      tm.applyScaledHoursRounding(rawB, "hour", 5) === 4
+    );
+    check(
+      "applyScaledHoursRounding hour+5min: 00:53-style proportional → 1h",
+      tm.applyScaledHoursRounding(rawC, "hour", 5) === 1
+    );
+
+    const scaledHour5 = tm.scaledToTargetHours(
+      { a: sec303, b: sec405, c: sec053 },
+      8,
+      "hour",
+      5
+    );
+    const byHour5 = Object.fromEntries(
+      scaledHour5.map((r) => [r.topicId, r.scaledHours])
+    );
+    check(
+      "scaledToTargetHours 8h hour+5min: 03:03 + 04:05 + 00:53 → 3h, 4h, 1h (sum 8h)",
+      byHour5.a === 3 &&
+        byHour5.b === 4 &&
+        byHour5.c === 1 &&
+        Math.abs(byHour5.a + byHour5.b + byHour5.c - 8) < 1e-6
+    );
+    check(
+      "scaled hours as h:mm:ss match 03:00:00, 04:00:00, 01:00:00",
+      tm.formatSecondsAsHhMmSs(byHour5.a * 3600) === "3:00:00" &&
+        tm.formatSecondsAsHhMmSs(byHour5.b * 3600) === "4:00:00" &&
+        tm.formatSecondsAsHhMmSs(byHour5.c * 3600) === "1:00:00"
     );
 
     check(
