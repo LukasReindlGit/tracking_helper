@@ -592,6 +592,13 @@ document.getElementById("btn-reset-times")?.addEventListener("click", () => {
   renderAll();
 });
 
+document.getElementById("btn-reset-all-tickets")?.addEventListener("click", () => {
+  if (!window.confirm("Delete all rows for today? This cannot be undone.")) return;
+  state.removeAllRows(appState, state.trackingDayKey(), Date.now());
+  save();
+  renderAll();
+});
+
 els.btnResetConsent?.addEventListener("click", () => {
   storage.clearConsentDecision();
   persist = false;

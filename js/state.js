@@ -240,6 +240,20 @@ export function resetSecondsForDay(state, dayKey, nowMs) {
 }
 
 /**
+ * Deletes every row for dayKey. Pauses an active timer on that day first.
+ * @param {AppState} state
+ * @param {string} dayKey
+ * @param {number} nowMs
+ */
+export function removeAllRows(state, dayKey, nowMs) {
+  const at = state.activeTimer;
+  if (at && at.dayKey === dayKey) {
+    pauseRowTimer(state, nowMs);
+  }
+  getRows(state, dayKey).length = 0;
+}
+
+/**
  * @param {AppState} state
  * @param {string} dayKey
  * @param {string} rowId

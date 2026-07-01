@@ -62,15 +62,26 @@
       <div id="tracking-rows" class="tracking-rows"></div>
       <div class="tracking-actions">
         <button type="button" id="btn-add-row" class="btn btn-secondary">Add row</button>
-        <button
-          type="button"
-          id="btn-reset-times"
-          class="btn btn-secondary"
-          title="Set every row's tracked time for today to 0:00:00. Pauses a running stopwatch on today first."
-          aria-label="Reset all tracked times for today to zero; pauses today’s stopwatch if running"
-        >
-          Reset times
-        </button>
+        <div class="tracking-actions-destructive">
+          <button
+            type="button"
+            id="btn-reset-times"
+            class="btn btn-secondary"
+            title="Set every row's tracked time for today to 0:00:00. Pauses a running stopwatch on today first."
+            aria-label="Reset all tracked times for today to zero; pauses today’s stopwatch if running"
+          >
+            Reset times
+          </button>
+          <button
+            type="button"
+            id="btn-reset-all-tickets"
+            class="btn btn-secondary"
+            title="Delete all rows for today. Pauses a running stopwatch on today first."
+            aria-label="Delete all rows for today; pauses today’s stopwatch if running"
+          >
+            Reset all Tickets
+          </button>
+        </div>
       </div>
     </section>
 

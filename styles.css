@@ -379,6 +379,13 @@ body {
   margin-top: 0.25rem;
 }
 
+.tracking-actions-destructive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
 .charts-total-recorded {
   margin: 0 0 0.5rem;
   font-size: 0.875rem;
